@@ -2,7 +2,6 @@
 <html lang="zh-CN">
 <head>
   <!-- 预加载关键资源 -->
-  <link rel="preload" as="image" href="/card_images/back.png" fetchpriority="high">
   <link rel="preconnect" href="/">
   <link rel="preload" as="image" href="/card_images/back.png" fetchpriority="high">
   <link rel="preload" as="image" href="/card_images/0.png" fetchpriority="high">
@@ -442,13 +441,54 @@
   .card-front.suit-major .card-keyword { color: #a78bfa; }
 
   /* ===== Reading Area ===== */
-  .reading-area {
+  /* ===== 解读卡片（点击翻开） ===== */
+  .reading-card {
     width: 100%; max-width: 780px;
-    min-height: 120px; margin-top: 0.5rem;
-    opacity: 0; transform: translateY(20px) scale(0.98);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 1.5rem;
+    display: none;
+    cursor: pointer;
   }
-  .reading-area.visible { opacity: 1; transform: translateY(0) scale(1); }
+  .reading-card.visible { display: block; }
+  .reading-card .rc-front {
+    background: linear-gradient(160deg, #1e1b3b, #0f0d23);
+    border: 1px solid rgba(192,132,252,0.2);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .reading-card .rc-front:hover {
+    border-color: rgba(192,132,252,0.4);
+    box-shadow: 0 0 30px rgba(139,92,246,0.1);
+  }
+  .reading-card .rc-front .rc-icon {
+    font-size: 2rem;
+    color: rgba(192,132,252,0.25);
+    margin-bottom: 0.8rem;
+    animation: breathe 2.5s ease-in-out infinite;
+  }
+  .reading-card .rc-front .rc-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.1rem;
+    color: #c084fc;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.4rem;
+  }
+  .reading-card .rc-front .rc-sub {
+    font-size: 0.8rem;
+    color: rgba(192,132,252,0.3);
+  }
+  .reading-card .rc-body {
+    display: none;
+    margin-top: 0;
+    animation: readingReveal 0.4s ease both;
+  }
+  @keyframes readingReveal {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .reading-card.open .rc-front { display: none; }
+  .reading-card.open .rc-body { display: block; }
 
   .reading-box {
     background: linear-gradient(160deg, rgba(30,27,59,0.85), rgba(15,13,35,0.92));
@@ -514,6 +554,64 @@
   }
 
   /* Overall summary */
+    /* ===== 解读翻牌 ===== */
+  .reading-flip {
+    perspective: 1000px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+  .reading-flip .rf-inner {
+    position: relative;
+    width: 100%;
+    min-height: 180px;
+    transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.4, 1);
+    transform-style: preserve-3d;
+  }
+  .reading-flip.flipped .rf-inner { transform: rotateY(180deg); }
+  .rf-front, .rf-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    padding: 1.2rem;
+    border: 1px solid rgba(192,132,252,0.2);
+    background: linear-gradient(160deg, rgba(30,27,59,0.92), rgba(15,13,35,0.95));
+  }
+  .rf-front {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+  }
+  .rf-front .rf-pos {
+    font-size: 0.8rem;
+    color: rgba(192,132,252,0.5);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.08em;
+  }
+  .rf-front .rf-name {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1rem;
+    color: #c084fc;
+    margin-bottom: 0.2rem;
+  }
+  .rf-front .rf-sub {
+    font-size: 0.7rem;
+    color: rgba(192,132,252,0.3);
+  }
+  .rf-front .rf-hint {
+    margin-top: 0.8rem;
+    font-size: 0.6rem;
+    color: rgba(192,132,252,0.2);
+    letter-spacing: 0.08em;
+  }
+  .rf-back {
+    transform: rotateY(180deg);
+    overflow-y: auto;
+    max-height: 400px;
+  }
+
   .reading-summary {
     margin-top: 1.2rem;
     padding: 1rem 1.2rem;
@@ -521,19 +619,11 @@
     border: 1px solid rgba(192,132,252,0.15);
     border-radius: 14px;
     text-align: center;
-    animation: summaryIn 0.5s ease both;
-    animation-delay: 0.2s;
-    opacity: 0;
-  }
-  @keyframes summaryIn {
-    0% { opacity:0; transform: translateY(10px); }
-    100% { opacity:1; transform: translateY(0); }
   }
   .reading-summary .summary-title {
     font-size: 0.75rem;
     color: var(--purple);
     letter-spacing: 0.1em;
-    margin-bottom: 0.4rem;
   }
   .reading-summary .summary-text {
     font-size: 0.85rem;
@@ -642,8 +732,14 @@
     <div class="card-grid" id="cardGrid"></div>
   </div>
 
-  <div class="reading-area" id="readingArea">
-    <div class="reading-box" id="readingBox"></div>
+  <!-- 解读卡片（点击翻开） -->
+  <div class="reading-card" id="readingCard" onclick="openReading()">
+    <div class="rc-front">
+      <div class="rc-icon">✦</div>
+      <div class="rc-title">点击翻开解读</div>
+      <div class="rc-sub">翻开卡牌获取塔罗指引</div>
+    </div>
+    <div class="rc-body"><div class="reading-box" id="readingBox"></div></div>
   </div>
 
   <div class="action-area" id="actionArea">
@@ -2958,9 +3054,9 @@ function flipCard(index) {
     if (isMajor) slot.classList.add('major-flipped');
 
     isAnimating = false;
-    // 全部翻完后显示解读
+    // 全部翻完后显示解读翻牌
     if (document.querySelectorAll('.card-slot.flipped').length === drawnCards.length) {
-      setTimeout(() => showReading(), 180);
+      setTimeout(() => showReading(), 300);
     }
   }, 420);
 }
@@ -2981,25 +3077,39 @@ function generateReading(cards, reversedMap, count) {
     const mythicText = dd && dd.mythic ? dd.mythic.slice(0, 120) + (dd.mythic.length > 120 ? '…' : '') : '';
     const archText = dd && dd.archetype ? dd.archetype : '';
 
-    html += `<div class="card-reading-item${revClass}" style="animation-delay:${i * 0.12}s">
-      <div class="reading-pos">${pos.symbol} ${pos.name} <span style="font-weight:400;color:rgba(192,132,252,0.4);">· ${pos.desc}</span></div>
-      <div class="reading-card-name">${card.symbol} ${card.name}
-        <span class="reversed-tag">${isRev ? '▼ 逆位' : '▲ 正位'}</span>
+    const flipId = 'rf_' + card.num + '_' + i;
+    html += `<div class="reading-flip" onclick="this.classList.toggle('flipped')">
+      <div class="rf-inner">
+        <div class="rf-front">
+          <div class="rf-pos">${pos.symbol} ${pos.name}</div>
+          <div class="rf-name">${card.symbol} ${card.name}</div>
+          <div class="rf-sub">${card.nameEn}${archText ? ' · ' + archText : ''}</div>
+          <div class="rf-hint">▼ 点击翻开</div>
+        </div>
+        <div class="rf-back">
+          <div class="reading-pos">${pos.symbol} ${pos.name} · <span class="reversed-tag">${isRev ? '▼ 逆位' : '▲ 正位'}</span></div>
+          <div class="reading-card-name">${card.symbol} ${card.name} <span style="font-size:0.65rem;color:rgba(192,132,252,0.4);">${card.nameEn}</span></div>
+          <div class="reading-meaning" style="margin-top:0.5rem;">${isRev ? card.meaningR : card.meaningU}</div>
+          ${card.vision ? `<div class="reading-vision" style="font-size:0.75rem;color:rgba(192,132,252,0.5);margin-top:0.3rem;font-style:italic;">🖼️ ${card.vision}</div>` : ''}
+          <div class="reading-keywords">🔑 ${kw} · ${cardType}</div>
+          ${mythicText ? `<div style="font-size:0.7rem;color:rgba(192,132,252,0.35);margin-top:0.3rem;padding-top:0.3rem;border-top:1px solid rgba(192,132,252,0.08);">📖 传统故事：${mythicText}</div>` : ''}
+          ${renderExtraCardInfo(card)}
+        </div>
       </div>
-      <div style="font-size:0.7rem;color:rgba(192,132,252,0.45);margin-bottom:0.3rem;letter-spacing:0.05em;">${card.nameEn}${archText ? ' · ' + archText : ''}</div>
-      <div class="reading-meaning">${isRev ? card.meaningR : card.meaningU}</div>
-      ${card.vision ? `<div class="reading-vision" style="font-size:0.75rem;color:rgba(192,132,252,0.5);margin-top:0.3rem;font-style:italic;">🖼️ ${card.vision}</div>` : ''}
-      <div class="reading-keywords">🔑 ${kw} · ${cardType}</div>
-      ${mythicText ? `<div style="font-size:0.7rem;color:rgba(192,132,252,0.35);margin-top:0.3rem;padding-top:0.3rem;border-top:1px solid rgba(192,132,252,0.08);">📖 传统故事：${mythicText}</div>` : ''}
-      ${renderExtraCardInfo(card)}
     </div>`;
   });
 
-  html += '<div class="reading-summary">';
-  html += '<div class="summary-title">✦ 综合指引 ✦</div>';
-  html += '<div class="summary-text">' + generateSummary(cards, reversedMap, count) + '</div>';
-  html += '</div>';
-  html += '</div>';
+  html += `<div class="reading-flip" onclick="this.classList.toggle('flipped')" style="margin-top:1.2rem;">
+    <div class="rf-inner">
+      <div class="rf-front">
+        <div class="rf-name">✦ 综合指引</div>
+        <div class="rf-hint">▼ 点击翻开</div>
+      </div>
+      <div class="rf-back">
+        <div class="summary-text">` + generateSummary(cards, reversedMap, count) + `</div>
+      </div>
+    </div>
+  </div>`;
   return html;
 }
 
@@ -3078,28 +3188,41 @@ function generateSummary(cards, reversedMap, count) {
 }
 
 // ===== 显示解读 =====
+// ===== 显示解读卡片 =====
 function showReading() {
-  const area = document.getElementById('readingArea');
+  const card = document.getElementById('readingCard');
   const box = document.getElementById('readingBox');
   const action = document.getElementById('actionArea');
 
   const html = generateReading(drawnCards, drawnReversed, currentCount);
   box.innerHTML = html;
-  area.classList.add('visible');
+  card.classList.add('visible');
   action.classList.add('visible');
 
   setTimeout(() => {
-    area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
+}
+
+function openReading() {
+  const card = document.getElementById('readingCard');
+  if (card.classList.contains('open')) return;
+  card.classList.add('open');
+}
+
+function toggleReadingItem(el) {
+  el.classList.toggle('open');
 }
 
 // ===== 抽牌主逻辑 =====
 function drawCards(count) {
   currentCount = count;
 
-  const area = document.getElementById('readingArea');
+  const card = document.getElementById('readingCard');
   const action = document.getElementById('actionArea');
-  area.classList.remove('visible');
+  if (card) {
+    card.classList.remove('visible', 'open');
+  }
   action.classList.remove('visible');
   isAnimating = false;
 
