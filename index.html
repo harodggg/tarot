@@ -1,0 +1,3170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- 预加载关键资源 -->
+  <link rel="preload" as="image" href="/card_images/back.png" fetchpriority="high">
+  <link rel="preconnect" href="/">
+  <link rel="preload" as="image" href="/card_images/back.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/card_images/0.png" fetchpriority="high">
+  <link rel="preload" as="image" href="/card_images/1.png" fetchpriority="high">
+  <style>
+    .card-slot { will-change: transform; }
+    .card-face { will-change: opacity; }
+  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔮 塔罗牌占卜</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&family=Playfair+Display:wght@600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --purple: #c084fc;
+    --purple-dim: #8b5cf6;
+    --text: #e8e0f0;
+    --text-dim: #9ca3af;
+    --bg: #0a0a12;
+    --card-bg: #1a1a2e;
+    --card-bg-alt: #16213e;
+    --fire: #f97316;
+    --water: #3b82f6;
+    --air: #eab308;
+    --earth: #22c55e;
+    --major: #c084fc;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 15%, rgba(88, 28, 135, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse at 75% 85%, rgba(30, 64, 175, 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.4) 0%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== 星空背景 ===== */
+  .stars {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: twinkle var(--d) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle {
+    0% { opacity:0.15; transform:scale(0.8); }
+    100% { opacity:1; transform:scale(1.2); }
+  }
+  .shooting-star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #fff, 0 0 8px #c084fc;
+    animation: shoot 3s linear infinite;
+    opacity: 0;
+  }
+  @keyframes shoot {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    5% { opacity: 1; }
+    15% { transform: translateX(-250px) translateY(250px); opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* 光晕 */
+  .glow-orb {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+  }
+  .glow-orb-1 { width:400px; height:400px; background:rgba(139,92,246,0.08); top:-100px; left:-100px; }
+  .glow-orb-2 { width:350px; height:350px; background:rgba(59,130,246,0.06); bottom:-50px; right:-50px; }
+
+  .container {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 1100px;
+    padding: 2rem 1.5rem 4rem;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+
+  /* ===== Title ===== */
+  header { text-align: center; margin-bottom: 0.8rem; }
+  header h1 {
+    font-family: 'Noto Serif SC', serif; font-size: 2.6rem; font-weight: 900;
+    background: linear-gradient(135deg, #c084fc, #818cf8, #c084fc);
+    background-size: 200% 200%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease-in-out infinite;
+    letter-spacing: 0.25em;
+  }
+  @keyframes gradientShift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  header .subtitle {
+    color: var(--text-dim); font-size: 0.85rem; margin-top: 0.3rem;
+    letter-spacing: 0.12em;
+  }
+  header .card-count {
+    color: rgba(192,132,252,0.5); font-size: 0.75rem; margin-top: 0.2rem;
+  }
+
+  /* ===== Selectors ===== */
+  .controls-row {
+    display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+  .controls-row label {
+    font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.08em;
+    margin-right: 0.2rem; align-self: center;
+  }
+
+  .spread-selector {
+    display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+  }
+  .spread-btn {
+    padding: 0.6rem 1.5rem;
+    border: 1px solid rgba(192,132,252,0.2);
+    border-radius: 12px;
+    background: rgba(139,92,246,0.06);
+    color: #d4c4f0;
+    font-family: 'Noto Sans SC', sans-serif; font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    letter-spacing: 0.05em;
+  }
+  .spread-btn:hover {
+    border-color: rgba(192,132,252,0.4);
+    background: rgba(139,92,246,0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(139,92,246,0.15);
+  }
+  .spread-btn.active {
+    background: rgba(139,92,246,0.22);
+    border-color: #c084fc;
+    box-shadow: 0 0 20px rgba(139,92,246,0.25), inset 0 0 15px rgba(139,92,246,0.08);
+    color: #fff;
+  }
+
+  /* ===== 粒子容器 ===== */
+  .particle-container {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .particle {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: particleFly var(--dur) ease-out both;
+  }
+  @keyframes particleFly {
+    0% { opacity:1; transform: translate(0,0) scale(1); }
+    100% { opacity:0; transform: translate(var(--tx), var(--ty)) scale(0); }
+  }
+
+  /* ===== Card Area ===== */
+  .card-area {
+    position: relative; width: 100%;
+    min-height: 400px;
+    display: flex; justify-content: center; align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .card-grid {
+    display: flex;
+    gap: var(--gap, 1.2rem);
+    justify-content: center; align-items: center;
+    flex-wrap: wrap;
+    perspective: 1200px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 1rem 0;
+    position: relative;
+  }
+
+  /* ===== 单牌容器 ===== */
+  .card-slot {
+    width: 170px; height: 280px;
+    position: relative;
+    cursor: pointer;
+  }
+  .card-slot .card-front { display: none; }
+  .card-slot.flipped .card-back { display: none; }
+  .card-slot.flipped .card-front { display: block; }
+  .card-slot.flipped {
+    transform: rotateY(180deg);
+    filter: drop-shadow(0 0 12px rgba(192,132,252,0.15));
+  }
+  .card-slot.major-flipped {
+    filter: drop-shadow(0 0 25px rgba(192,132,252,0.35));
+  }
+  .card-slot.empty { visibility: hidden; pointer-events: none; }
+
+  /* 入场动画 */
+  .card-slot.entering {
+    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes cardEntrance {
+    0% {
+      opacity:0;
+      transform: translateY(-80px) translateX(var(--dx, 0)) scale(0.7) rotateX(10deg);
+      filter: blur(8px);
+    }
+    50% {
+      filter: blur(1px);
+    }
+    100% {
+      opacity:1;
+      transform: translateY(0) translateX(0) scale(1) rotateX(0deg);
+      filter: blur(0);
+    }
+  }
+
+  /* 漂浮呼吸 — 用 box-shadow 避免干扰 transform transition */
+  .card-slot.idle {
+    animation: floatIdle 3s ease-in-out infinite;
+  }
+  @keyframes floatIdle {
+    0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    50% { box-shadow: 0 8px 30px rgba(139,92,246,0.15); }
+  }
+
+  /* 卡背光晕脉冲 */
+  .card-slot .glow-ring {
+    position: absolute; inset: -4px;
+    border-radius: 18px;
+    border: 1.5px solid transparent;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card-slot.pulse-glow .glow-ring {
+    opacity: 1;
+    border-color: rgba(192,132,252,0.3);
+    animation: ringPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes ringPulse {
+    0%,100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+  }
+
+  /* ===== Card Face ===== */
+  .card-face {
+    position: absolute; inset: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(192,132,252,0.18);
+  }
+
+  /* Card Back */
+  .card-back {
+    background: #1a1a2e;
+    border: 1px solid rgba(192,132,252,0.25);
+    z-index: 2;
+    overflow: hidden;
+  }
+  .card-back .back-pattern {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.5rem;
+    position: relative; z-index: 1;
+  }
+  .card-back .back-pattern .pentacle {
+    width: 70px; height: 70px;
+    border: 1.5px solid rgba(192,132,252,0.15);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .card-back .back-pattern .pentacle::before {
+    content: '✦';
+    font-size: 2rem;
+    color: rgba(192,132,252,0.35);
+    animation: breathe 2.5s ease-in-out infinite;
+  }
+  .card-back .back-pattern .pentacle::after {
+    content: '';
+    position: absolute;
+    width: 55px; height: 55px;
+    border: 1px solid rgba(192,132,252,0.07);
+    border-radius: 50%;
+  }
+  @keyframes breathe {
+    0%,100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.08); }
+  }
+  .card-back .back-label {
+    font-size: 0.7rem;
+    color: rgba(192,132,252,0.25);
+    letter-spacing: 0.15em;
+  }
+  /* 卡背底部的"点击抽牌" */
+
+
+  /* Card Front */
+  .card-front {
+    background: #1e1b3b;
+    z-index: 1;
+    border-width: 1px;
+    overflow: hidden;
+  }
+  .card-front.reversed {
+    border-color: rgba(239,68,68,0.3) !important;
+  }
+  .card-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 14px;
+  }
+  .card-front.reversed {
+    border-color: rgba(239,68,68,0.3) !important;
+    box-shadow: 0 4px 30px rgba(239,68,68,0.12), inset 0 0 20px rgba(239,68,68,0.03);
+  }
+
+  /* Suit accent borders */
+  .card-front.suit-fire { border-color: rgba(249,115,22,0.3); }
+  .card-front.suit-water { border-color: rgba(59,130,246,0.3); }
+  .card-front.suit-air { border-color: rgba(234,179,8,0.3); }
+  .card-front.suit-earth { border-color: rgba(34,197,94,0.3); }
+  .card-front.suit-major { border-color: rgba(192,132,252,0.35); }
+
+  .card-front .card-top-row {
+    position: absolute; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between;
+    font-size: 0.6rem;
+    color: rgba(192,132,252,0.35);
+    letter-spacing: 0.05em;
+  }
+  .card-front .card-bottom-row {
+    position: absolute; bottom: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between;
+    font-size: 0.6rem;
+    color: rgba(192,132,252,0.35);
+    letter-spacing: 0.05em;
+  }
+
+  .card-front .card-symbol {
+    font-size: 2.5rem;
+    margin-bottom: 0.3rem;
+    filter: drop-shadow(0 0 8px rgba(192,132,252,0.2));
+    transition: transform 0.3s;
+  }
+  .card-front.reversed .card-symbol {
+    transform: rotate(180deg);
+    filter: drop-shadow(0 0 8px rgba(239,68,68,0.2));
+  }
+
+  .card-front .card-name {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1rem; font-weight: 700;
+    line-height: 1.3; margin-bottom: 0.15rem;
+  }
+  .card-front.suit-fire .card-name { color: #fdba74; }
+  .card-front.suit-water .card-name { color: #93c5fd; }
+  .card-front.suit-air .card-name { color: #fde047; }
+  .card-front.suit-earth .card-name { color: #86efac; }
+  .card-front.suit-major .card-name { color: #e8d8ff; }
+
+  .card-front .card-name-en {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.6rem;
+    color: rgba(192,132,252,0.4);
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+  }
+
+  .card-front .card-reversed-badge {
+    display: none;
+    font-size: 0.55rem;
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px;
+    padding: 0.1rem 0.5rem;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.1em;
+    background: rgba(239,68,68,0.08);
+  }
+  .card-front.reversed .card-reversed-badge { display: inline-block; }
+  .card-front .card-upright-badge {
+    font-size: 0.55rem;
+    color: var(--purple-dim);
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 10px;
+    padding: 0.1rem 0.5rem;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.1em;
+    background: rgba(139,92,246,0.06);
+  }
+  .card-front.reversed .card-upright-badge { display: none; }
+
+  .card-front .card-keyword {
+    font-size: 0.65rem;
+    line-height: 1.4;
+    padding: 0 0.3rem;
+    opacity: 0.85;
+  }
+  .card-front.suit-fire .card-keyword { color: #fdba74; }
+  .card-front.suit-water .card-keyword { color: #93c5fd; }
+  .card-front.suit-air .card-keyword { color: #fde047; }
+  .card-front.suit-earth .card-keyword { color: #86efac; }
+  .card-front.suit-major .card-keyword { color: #a78bfa; }
+
+  /* ===== Reading Area ===== */
+  .reading-area {
+    width: 100%; max-width: 780px;
+    min-height: 120px; margin-top: 0.5rem;
+    opacity: 0; transform: translateY(20px) scale(0.98);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reading-area.visible { opacity: 1; transform: translateY(0) scale(1); }
+
+  .reading-box {
+    background: linear-gradient(160deg, rgba(30,27,59,0.85), rgba(15,13,35,0.92));
+    border: 1px solid rgba(192,132,252,0.18);
+    border-radius: 20px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+  }
+  .reading-box h3 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.2rem;
+    color: var(--purple);
+    margin-bottom: 1.2rem;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  .reading-text { font-size: 0.9rem; line-height: 1.7; color: #d4c4f0; }
+  .reading-text .card-reading-item {
+    margin-bottom: 1rem;
+    padding: 1rem 1rem 1rem 1.2rem;
+    background: rgba(139,92,246,0.05);
+    border-radius: 12px;
+    border-left: 3px solid rgba(192,132,252,0.25);
+    transition: all 0.3s;
+    animation: readingItemIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    opacity: 0;
+  }
+  @keyframes readingItemIn {
+    0% { opacity:0; transform: translateX(-15px); }
+    100% { opacity:1; transform: translateX(0); }
+  }
+  .reading-text .card-reading-item.reversed-item {
+    border-left-color: rgba(239,68,68,0.3);
+    background: rgba(239,68,68,0.04);
+  }
+  .reading-text .card-reading-item:last-child { margin-bottom: 0; }
+  .card-reading-item .reading-pos {
+    font-weight: 700;
+    color: #a78bfa;
+    font-size: 0.8rem;
+    margin-bottom: 0.15rem;
+    letter-spacing: 0.05em;
+  }
+  .card-reading-item .reading-card-name {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  .card-reading-item .reading-card-name .reversed-tag {
+    color: #f87171; font-size: 0.75rem; margin-left: 0.3rem;
+  }
+  .card-reading-item .reading-meaning {
+    font-size: 0.82rem;
+    color: #c4b5d8;
+    line-height: 1.6;
+  }
+  .card-reading-item .reading-keywords {
+    font-size: 0.7rem;
+    color: var(--purple-dim);
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+
+  /* Overall summary */
+  .reading-summary {
+    margin-top: 1.2rem;
+    padding: 1rem 1.2rem;
+    background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.05));
+    border: 1px solid rgba(192,132,252,0.15);
+    border-radius: 14px;
+    text-align: center;
+    animation: summaryIn 0.5s ease both;
+    animation-delay: 0.2s;
+    opacity: 0;
+  }
+  @keyframes summaryIn {
+    0% { opacity:0; transform: translateY(10px); }
+    100% { opacity:1; transform: translateY(0); }
+  }
+  .reading-summary .summary-title {
+    font-size: 0.75rem;
+    color: var(--purple);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.4rem;
+  }
+  .reading-summary .summary-text {
+    font-size: 0.85rem;
+    color: #d4c4f0;
+    line-height: 1.6;
+  }
+
+  /* ===== Action ===== */
+  .action-area {
+    margin-top: 1.5rem;
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.3s ease;
+  }
+  .action-area.visible { opacity: 1; transform: translateY(0); }
+
+  .btn-redraw {
+    padding: 0.9rem 2.6rem;
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 50px;
+    background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.12));
+    color: #c084fc;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 0.1em;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 15px rgba(139,92,246,0.1);
+  }
+  .btn-redraw::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px;
+    right: -2px; bottom: -2px;
+    border-radius: 52px;
+    background: linear-gradient(135deg, #c084fc44, #818cf844, #c084fc44);
+    background-size: 200% 200%;
+    animation: btnGlow 3s ease-in-out infinite;
+    z-index: -1;
+    opacity: 0.6;
+    filter: blur(4px);
+  }
+  @keyframes btnGlow {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .btn-redraw:hover {
+    background: linear-gradient(135deg, rgba(139,92,246,0.28), rgba(99,102,241,0.22));
+    border-color: rgba(192,132,252,0.6);
+    box-shadow: 0 4px 30px rgba(139,92,246,0.3), 0 0 60px rgba(139,92,246,0.1);
+    transform: translateY(-3px) scale(1.03);
+  }
+  .btn-redraw .btn-icon {
+    vertical-align: middle;
+    margin-right: 6px;
+    display: inline-block;
+  }
+  .btn-redraw:active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 0.1s;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 700px) {
+    .card-grid { gap: 0.6rem; }
+    .reading-box { padding: 1.2rem; }
+    .spread-selector { gap: 0.4rem; }
+    .spread-btn { padding: 0.5rem 1rem; font-size: 0.75rem; }
+  }
+</style>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g' cx='40%25' cy='35%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%23e8d8ff'/%3E%3Cstop offset='40%25' stop-color='%239479eb'/%3E%3Cstop offset='100%25' stop-color='%235b21a8'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='14' fill='url(%23g)'/%3E%3Ccircle cx='13' cy='12' r='2.5' fill='white' opacity='0.3'/%3E%3Cpath d='M10 22 L22 22 L24 28 L8 28 Z' fill='%235b21a8' opacity='0.4'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+<div class="particle-container" id="particleContainer"></div>
+
+<div class="container">
+  <header>
+    <h1>✦ 塔罗占卜 ✦</h1>
+    <p class="subtitle">静心凝神，选择牌阵与牌组，抽取你的指引</p>
+    <p class="card-count">22 张大阿卡纳 + 56 张小阿卡纳 · 正逆位</p>
+  </header>
+
+  <div class="controls-row">
+    <div class="spread-selector">
+      <button class="spread-btn active" data-count="1">🔮 单张牌</button>
+      <button class="spread-btn" data-count="3">🌙 三牌阵</button>
+      <button class="spread-btn" data-count="5">⭐ 五牌阵</button>
+      <button class="spread-btn" data-count="7">🌟 七牌阵</button>
+      <button class="spread-btn" data-count="4">🍃 四季牌阵</button>
+      <button class="spread-btn" data-count="10">✝️ 凯尔特十字</button>
+      <button class="spread-btn" data-count="6">💞 关系牌阵</button>
+      <button class="spread-btn" data-count="8">✡️ 六芒星牌阵</button>
+    </div>
+  </div>
+
+
+
+  <div class="card-area">
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <div class="reading-area" id="readingArea">
+    <div class="reading-box" id="readingBox"></div>
+  </div>
+
+  <div class="action-area" id="actionArea">
+    <button class="btn-redraw" onclick="resetAndDraw()">
+      <svg class="btn-icon" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 10a9 9 0 1 1 3.5 7.2"/>
+        <path d="M1 17v-6h6"/>
+      </svg>
+      重新抽牌
+    </button>
+  </div>
+</div>
+
+<script>
+// ===== 完整塔罗数据库：78 张牌 =====
+
+// --- 22 张大阿卡纳 ---
+const MAJOR_ARCANA = [
+  { num:0, name:'愚者',   nameEn:'The Fool',        symbol:'🐾🌅', suit:'major',
+    keywordU:'新的开始 · 冒险 · 纯真',
+    keywordR:'鲁莽 · 愚蠢 · 冒险过度',
+    meaningU:'一个全新的开始正在等待你。保持开放的心态，勇敢踏上未知的旅程，信任宇宙的安排。这张牌鼓励你放下过去的包袱，以纯真的眼光探索新的可能性。',
+    meaningR:'谨慎行事！你可能在忽视重要的警告，或是在逃避责任。不要因为恐惧未知而退缩，但也不要盲目跳入危险境地。反思：你在逃避什么？',
+    vision:'悬崖边站着一个背小包的年轻人，小白狗在脚边欢跳。旭日从远方升起。' },
+  { num:1, name:'魔术师', nameEn:'The Magician',    symbol:'🪄♾️', suit:'major',
+    keywordU:'创造力 · 自信 · 技能 · 显化',
+    keywordR:'操纵 · 才能未被利用 · 诡计',
+    meaningU:'你拥有实现目标所需的全部资源和能力。善用你的智慧和技能，将想法转化为现实。你的意志力与创造力正在高峰，是采取行动的最佳时机。',
+    meaningR:'你的才能可能被浪费或误用。警惕自我怀疑或他人的操控。重新审视你是否在充分利用自己的天赋，还是被某个幻象所迷惑。',
+    vision:'桌上摆着权杖、圣杯、宝剑和星币。青年一手举杖指天、一手指地。' },
+  { num:2, name:'女祭司', nameEn:'The High Priestess', symbol:'📜🌙', suit:'major',
+    keywordU:'直觉 · 潜意识 · 内在智慧 · 神秘',
+    keywordR:'秘密被隐藏 · 直觉受阻 · 表面化',
+    meaningU:'静下来倾听内心的声音。答案不在外界，而在你的潜意识深处。信任你的直觉和梦境，它们正在为你传递重要的信息。现在是向内探索的时期。',
+    meaningR:'你可能忽略了内心的声音，或者有人在对你隐瞒什么。需要更深入地挖掘真相，不要满足于表面的答案。你的直觉可能暂时被噪音掩盖。',
+    vision:'蓝袍贞女坐于黑白双柱间手持卷轴，脚畔一弯新月，身后帷幕掩藏未知之海。' },
+  { num:3, name:'女皇',   nameEn:'The Empress',     symbol:'🌾👑', suit:'major',
+    keywordU:'丰饶 · 自然 · 母性 · 奢华',
+    keywordR:'依赖 · 创造力受阻 · 家庭问题',
+    meaningU:'丰盛与美好正在向你靠近。享受生命中的滋养与创造力，让爱与美充满你的生活。这是收获的季节，你值得拥有舒适与富足。',
+    meaningR:'你可能会感到创造力枯竭或与自然脱节。注意不要过度依赖他人，或在物质享受中迷失自我。回归简单，重新连接内在的丰饶之源。',
+    vision:'头戴星冠的女皇坐在软垫上手握权杖，身后麦田起伏，瀑布从林间倾泻。' },
+  { num:4, name:'皇帝',   nameEn:'The Emperor',     symbol:'🏔️👑', suit:'major',
+    keywordU:'权威 · 秩序 · 稳定 · 父亲形象',
+    keywordR:'专制 · 僵化 · 缺乏纪律',
+    meaningU:'建立稳固的基础很重要。用秩序和纪律来巩固你的成就，但保持适度的灵活性。权威和结构能为你提供安全感，但不要变得过于固执。',
+    meaningR:'你可能在对抗正当的权威，或正遭受独断专行的压迫。僵化的规则正在限制你的发展。找到秩序与自由之间的平衡点。',
+    vision:'帝王端坐于石座上手握权杖与宝球，远处荒山象征不可动摇的力量。' },
+  { num:5, name:'教皇',   nameEn:'The Hierophant',  symbol:'⛪🔑', suit:'major',
+    keywordU:'传统 · 智慧 · 信仰 · 教导',
+    keywordR:'叛逆 · 打破常规 · 非正统方法',
+    meaningU:'寻求精神上的指引和智慧。传统的知识和经验会为你提供重要的帮助。不妨向导师或值得信赖的长者请教，他们的建议会照亮你的前路。',
+    meaningR:'你可能在质疑传统或权威。这是好事——不要再盲目遵循他人制定的规则，寻找属于你自己的真理和信仰体系。',
+    vision:'教皇头戴三重冠冕右手赐福左手持十字杖，两位信徒跪于阶前聆听教诲。' },
+  { num:6, name:'恋人',   nameEn:'The Lovers',      symbol:'🍎🔥', suit:'major',
+    keywordU:'选择 · 关系 · 和谐 · 价值观',
+    keywordR:'冲突 · 价值观对立 · 关系裂痕',
+    meaningU:'面临重要的选择。跟随内心的真实感受，选择与爱和价值观一致的道路。这张牌也象征着深刻的连接和关系的融合。',
+    meaningR:'关系中的冲突或价值观的冲突正在浮现。你需要做出艰难的选择，或者现有的关系需要重新审视。不要逃避，诚实面对你的内心。',
+    vision:'恋人立于伊甸园中，背后是知识之树与火焰之树，天使在云端张开双臂赐福。' },
+  { num:7, name:'战车',   nameEn:'The Chariot',     symbol:'⚔️🐉', suit:'major',
+    keywordU:'意志力 · 胜利 · 决心 · 征服',
+    keywordR:'缺乏方向 · 失控 · 侵略性',
+    meaningU:'坚定的意志将带你走向胜利。保持专注和决心，克服一切困难。你内心的战士已经被唤醒，勇往直前就能达成目标。',
+    meaningR:'你可能失去了方向，或正被两种相反的力量拉扯。失控和冲动会导致失败。停下来，重新找到你的重心和方向。',
+    vision:'勇士立于战车之上一黑一白斯芬克斯拉着，手持权杖，背后是城墙和奔流的河水。' },
+  { num:8, name:'力量',   nameEn:'Strength',        symbol:'🦁🌸', suit:'major',
+    keywordU:'勇气 · 内心力量 · 耐心 · 慈悲',
+    keywordR:'自我怀疑 · 软弱 · 缺乏自信',
+    meaningU:'真正的力量来自内心。用耐心和温柔面对挑战——坚韧比蛮力更有力量。你在克服困难时展现的内在力量令人敬佩。',
+    meaningR:'自我怀疑正在侵蚀你的力量。你可能会感到脆弱或不堪重负。不要对抗这些感受，接纳它们，从内在找到重新站起来的勇气。',
+    vision:'白衣女子轻轻合上雄狮的嘴，头上有∞符号——以柔克刚的内在力量。' },
+  { num:9, name:'隐士',   nameEn:'The Hermit',      symbol:'🏮🦉', suit:'major',
+    keywordU:'内省 · 引导 · 孤独 · 智慧',
+    keywordR:'孤立 · 迷失 · 抗拒帮助',
+    meaningU:'暂时远离喧嚣，向内探索。独处和冥想会为你带来珍贵的启示。你的内在之光正在引导你走向更高的智慧。',
+    meaningR:'你可能过于孤立自己，或拒绝接受他人的帮助。迷失在孤独中并不等于真正的内省。适时地走出自己的世界，接受外界的指引。',
+    vision:'灰袍老者站在雪山之巅高擎六芒星提灯，在孤独中寻找真理之光。' },
+  { num:10,name:'命运之轮', nameEn:'Wheel of Fortune', symbol:'🎡📜', suit:'major',
+    keywordU:'命运 · 转变 · 循环 · 好运',
+    keywordR:'厄运 · 阻力 · 失去控制',
+    meaningU:'命运的车轮正在转动。变化不可避免，接受生命的循环，顺势而为。好运正在向你靠近，抓住这个转折点带来的机遇。',
+    meaningR:'坏运气或阻力出现在你面前。变化令人不安，但记住——命运之轮永远在转动，低谷之后必有上升。保持耐心，事情会好转。',
+    vision:'巨大的命运之轮转动，四角有鹰牛狮天使各执经书，轮上坐着斯芬克斯。' },
+  { num:11,name:'正义',   nameEn:'Justice',         symbol:'⚖️🗡️', suit:'major',
+    keywordU:'公平 · 真相 · 因果 · 法律',
+    keywordR:'不公 · 欺骗 · 逃避责任',
+    meaningU:'真相将会浮现。用公正和诚实面对一切，因果报应终有定论。如果你行事正直，正义会站在你这边；如果不公，也要承担后果。',
+    meaningR:'你可能会遭遇不公正的对待，或正在逃避自己行为的后果。不要欺骗自己或他人。真相虽然可能令人不舒服，但它是唯一的出路。',
+    vision:'正义女神端坐石座上右手执剑左手持天平，目光坚定穿透一切。' },
+  { num:12,name:'倒吊人', nameEn:'The Hanged Man',  symbol:'🪢💡', suit:'major',
+    keywordU:'暂停 · 新视角 · 牺牲 · 放下',
+    keywordR:'拖延 · 抗拒放手 · 无谓牺牲',
+    meaningU:'有时需要换个角度看问题。暂时的等待和放下，会带来意想不到的领悟。通过牺牲和放手，你将获得更高的智慧。',
+    meaningR:'你可能在无谓地拖延，或为了错误的原因做出牺牲。抗拒必要的改变只会延长你的痛苦。审视：你需要的真的是"坚持"还是"放手"？',
+    vision:'男子被倒吊在T形木架上一条腿搭在另一条腿上，表情宁静，头顶光晕环绕。' },
+  { num:13,name:'死神',   nameEn:'Death',           symbol:'💀🌅', suit:'major',
+    keywordU:'结束 · 蜕变 · 新生 · 转变',
+    keywordR:'抗拒改变 · 停滞 · 恐惧',
+    meaningU:'结束是为了新的开始。放下不再服务于你的旧模式，蜕变正在发生。死亡是重生的前奏——你正在经历的结束将带来更强大的新生。',
+    meaningR:'你可能在抗拒不可避免的变化，紧抓着已经死亡的事物不放。恐惧改变是正常的，但固执会阻碍你迎接新的可能。放手吧。',
+    vision:'披甲的死亡骑士骑着白马踏过人群，主教少女国王都倒在地上，远方升起旭日。' },
+  { num:14,name:'节制',   nameEn:'Temperance',      symbol:'⚗️🌊', suit:'major',
+    keywordU:'平衡 · 适度 · 调和 · 耐心',
+    keywordR:'失衡 · 过度 · 急躁',
+    meaningU:'寻找平衡与和谐。适度是智慧的表现，在对立中找到中道。耐心调和生命中的各种元素，你会感受到内在的平静与整合。',
+    meaningR:'你可能在生活中失去了平衡。过度放纵或急功近利都会带来问题。放慢节奏，重新调整你的优先级，找到内心的平衡点。',
+    vision:'天使一只脚踏入水池手持两只圣杯，水在杯间流动，身后是通往远山的道路。' },
+  { num:15,name:'恶魔',   nameEn:'The Devil',       symbol:'😈⛓️', suit:'major',
+    keywordU:'束缚 · 诱惑 · 执念 · 物质主义',
+    keywordR:'觉醒 · 挣脱 · 重获自由',
+    meaningU:'警惕那些束缚你的执念和欲望。识别出真正的枷锁，才能获得自由。你可能被某种成瘾、恐惧或不健康的关系所困。',
+    meaningR:'你正在觉醒并挣脱束缚。意识到自己的枷锁是解放的第一步。你有力量切断那些不再服务于你的链条，重获自由。',
+    vision:'恶魔蹲坐在石柱上一男一女被铁链拴在座前，但链子是松的——他们本可以挣脱。' },
+  { num:16,name:'高塔',   nameEn:'The Tower',       symbol:'⚡🏚️', suit:'major',
+    keywordU:'剧变 · 觉醒 · 崩塌 · 启示',
+    keywordR:'避免灾难 · 抗拒改变 · 重建',
+    meaningU:'突如其来的变化可能令人震惊，但崩塌的往往是原本就不稳固的东西。虽然痛苦，但这是必要的清算——旧的崩塌为新的让路。',
+    meaningR:'你可能避免了即将发生的灾难，或者正在抗拒必要的改变。但有些崩塌是无可避免的。与其抵抗，不如为重建做好准备。',
+    vision:'闪电击中高塔顶端，塔顶皇冠被劈落，两个人从塔上坠落，背景是漆黑夜空。' },
+  { num:17,name:'星星',   nameEn:'The Star',        symbol:'⭐🌊', suit:'major',
+    keywordU:'希望 · 灵感 · 宁静 · 指引',
+    keywordR:'绝望 · 失去信仰 · 灵感枯竭',
+    meaningU:'希望之光照亮前路。保持信念，跟随内心的灵感之光，一切都会好起来。这是疗愈和更新的时期，信任宇宙的安排。',
+    meaningR:'你可能会感到绝望或失去方向。信仰被动摇，灵感枯竭。这是暂时的——重新找回内在的光芒，即使在最黑暗的时刻，星星仍在闪耀。',
+    vision:'赤裸少女跪在水边双手各持水壶将生命之水倾倒，头顶一颗巨大的八芒星。' },
+  { num:18,name:'月亮',   nameEn:'The Moon',        symbol:'🌙🐺', suit:'major',
+    keywordU:'幻觉 · 恐惧 · 潜意识 · 不确定',
+    keywordR:'看清真相 · 克服恐惧 · 释然',
+    meaningU:'有些事物并非表面看起来那样。面对你的恐惧，揭开幻觉的面纱。你的潜意识正在通过梦境和直觉与你对话，不要忽视。',
+    meaningR:'你正在逐步看清真相，克服内心的恐惧。迷雾正在散去，虽然仍有不确定，但你已经走在正确的方向。继续前行，黎明将至。',
+    vision:'满月高悬夜空隐现人脸，小径从水池蜿蜒穿过荒原通向远方两塔，狼和狗对着月亮吠叫。' },
+  { num:19,name:'太阳',   nameEn:'The Sun',         symbol:'☀️🌻', suit:'major',
+    keywordU:'喜悦 · 成功 · 活力 · 真理',
+    keywordR:'暂时阴霾 · 过度乐观 · 压抑',
+    meaningU:'喜悦和成功属于你！这是充满活力与成长的时期，尽情享受生命的光辉。一切都清晰明亮，你的努力正在得到回报。',
+    meaningR:'你可能正经历一段情绪低落的时期，或者过于乐观而忽视了现实的细节。快乐和成功仍然在那里，只是暂时被云层遮住。',
+    vision:'巨大太阳照耀着大地，裸体孩童骑着白马奔驰在向日葵田中，洋溢着纯真笑容。' },
+  { num:20,name:'审判',   nameEn:'Judgement',       symbol:'📯🔥', suit:'major',
+    keywordU:'觉醒 · 重生 · 召唤 · 宽恕',
+    keywordR:'自我怀疑 · 拒绝召唤 · 悔恨',
+    meaningU:'觉醒的时刻到了。过去的经历让你获得了新的领悟，是时候回应内心的召唤。用宽恕和接纳面对过去，你的重生已经到来。',
+    meaningR:'你可能在抗拒内心的召唤，或深陷自我怀疑。不要因为恐惧而错过重生的机会。倾听内心的号角声，现在就是行动的时刻。',
+    vision:'天使在高空中吹响金色号角，海水中的棺材浮起，死者在召唤中站起迎接新生。' },
+  { num:21,name:'世界',   nameEn:'The World',       symbol:'🌍♾️', suit:'major',
+    keywordU:'完成 · 圆满 · 成就 · 旅程',
+    keywordR:'未完成 · 停滞 · 寻找终点',
+    meaningU:'一个周期圆满完成了。你收获了智慧与成长，新的旅程即将在更高的起点开始。庆祝你的成就，你做到了！',
+    meaningR:'你可能离目标只有一步之遥，却迟迟无法完成。不要放弃——最后的冲刺往往是最关键的。审视还有什么未完成的事情需要收尾。',
+    vision:'花环环绕的中央裸体舞者身披轻纱手握双杖，四角有鹰牛狮天使四个象征生物。' },
+];
+
+// --- 56 张小阿卡纳 ---
+const SUIT_NAMES = {
+  wands:   { name:'权杖', nameEn:'Wands',    symbol:'🔥', element:'火', color:'suit-fire' },
+  cups:    { name:'圣杯', nameEn:'Cups',     symbol:'💧', element:'水', color:'suit-water' },
+  swords:  { name:'宝剑', nameEn:'Swords',   symbol:'💨', element:'风', color:'suit-air' },
+  pentacles: { name:'星币', nameEn:'Pentacles', symbol:'🌍', element:'土', color:'suit-earth' },
+};
+
+const MINOR_CARDS = {
+  wands: [
+    { rank:'Ace', num:100, name:'权杖王牌', nameEn:'Ace of Wands', symbol:'🖐️🌿',
+      keywordU:'创造 · 开端 · 灵感 · 能量', keywordR:'延迟 · 失去热情 · 错误的开始',
+      meaningU:'一个充满创造力和激情的新开始！你被强烈的能量和灵感点燃，大胆追求你的愿景。这是行动的时刻，抓住这股势头。',
+      meaningR:'新的计划可能遇到延迟或失去动力。不要气馁——重新点燃你的热情，或者审视这条路是否真的适合你。' },
+    { rank:'Two', num:102, name:'权杖二', nameEn:'Two of Wands', symbol:'🌍🏰',
+      keywordU:'规划 · 未来 · 决策 · 勇气', keywordR:'恐惧改变 · 优柔寡断 · 计划受阻',
+      meaningU:'你站在一个十字路口，手中握着未来。大胆规划你的下一步，你拥有做出改变的力量。世界在你手中。',
+      meaningR:'你可能害怕走出舒适区，或在重大决策面前犹豫不决。恐惧改变是正常的，但停滞不前会让你错过成长的机会。' },
+    { rank:'Three', num:103, name:'权杖三', nameEn:'Three of Wands', symbol:'⛵🔭',
+      keywordU:'远见 · 探索 · 扩展 · 贸易', keywordR:'阻碍 · 延迟 · 视野受限',
+      meaningU:'你的视野正在扩展。新的机遇和可能性在远方等待着你。大胆探索未知领域，你的远见会带领你走向成功。',
+      meaningR:'计划可能遇到阻碍或延迟。不要灰心——也许是时候调整方向或耐心等待更好的时机。前方的路仍然开放。' },
+    { rank:'Four', num:104, name:'权杖四', nameEn:'Four of Wands', symbol:'🏡🎉',
+      keywordU:'庆祝 · 和谐 · 家园 · 稳定', keywordR:'不安 · 缺乏根基 · 动荡',
+      meaningU:'庆祝你的成就！你建立了一个稳定的基础，值得与亲人一起享受这美好的时刻。和谐与喜悦围绕着你。',
+      meaningR:'你可能会感到不安或不满足，即使表面看起来一切顺利。也许你的根基不够牢固，需要重新审视你的基础。' },
+    { rank:'Five', num:105, name:'权杖五', nameEn:'Five of Wands', symbol:'⚔️🌿',
+      keywordU:'竞争 · 冲突 · 挑战 · 分歧', keywordR:'妥协 · 和解 · 避免冲突',
+      meaningU:'竞争和冲突正在出现。不是所有的斗争都是坏事——健康的竞争可以激发你做到最好。但也要注意不要陷入无意义的争吵。',
+      meaningR:'冲突正在缓和，你可能找到了妥协的方式。但这不一定意味着问题的解决。确保你的让步是为了真正的和解，而非逃避。' },
+    { rank:'Six', num:106, name:'权杖六', nameEn:'Six of Wands', symbol:'🏆🌿',
+      keywordU:'胜利 · 认可 · 公众赞誉', keywordR:'自负 · 失宠 · 挫折',
+      meaningU:'你取得了令人瞩目的胜利！你的努力得到了认可，周围的人正在为你的成功喝彩。享受这一刻的荣耀。',
+      meaningR:'成功可能转瞬即逝。避免过度自信或得意忘形。也可能是你曾经的地位或声望正面临挑战。保持谦虚和警觉。' },
+    { rank:'Seven', num:107, name:'权杖七', nameEn:'Seven of Wands', symbol:'🛡️⛰️',
+      keywordU:'坚持 · 防守 · 勇敢面对', keywordR:'不堪重负 · 放弃 · 退缩',
+      meaningU:'你面临着挑战，但你有勇气和力量坚守阵地。不要屈服于压力，坚持你的立场。虽然困难，但胜利属于有毅力的人。',
+      meaningR:'你可能感到不堪重负，想要放弃。审视一下：这场战斗值得打吗？有时候，战略性撤退比无谓的抵抗更需要智慧。' },
+    { rank:'Eight', num:108, name:'权杖八', nameEn:'Eight of Wands', symbol:'💫🌿',
+      keywordU:'速度 · 行动 · 变化 · 进展', keywordR:'延迟 · 减速 · 方向偏离',
+      meaningU:'事情正在快速推进！这股势不可挡的能量正在推动你前进。抓住这个机会，顺应变化，事情正在朝着有利的方向发展。',
+      meaningR:'进展可能突然放缓。也许你需要减速重新规划方向，或者外部的阻力正在影响你的速度。不要心急，调整节奏。' },
+    { rank:'Nine', num:109, name:'权杖九', nameEn:'Nine of Wands', symbol:'🤕🛡️',
+      keywordU:'韧性 · 警觉 · 边界 · 防御', keywordR:'精疲力竭 · 偏执 · 投降',
+      meaningU:'你一路走来经历了很多，现在仍然坚守着。保持警觉，守护你的边界。你已经比想象中更坚韧只差最后一步。',
+      meaningR:'你疲惫不堪，持续的防守正在耗尽你的精力。也许是你太偏执了，不是所有东西都是威胁。退一步，给自己休息的时间。' },
+    { rank:'Ten', num:110, name:'权杖十', nameEn:'Ten of Wands', symbol:'😰📦',
+      keywordU:'负担 · 压力 · 责任过重 · 劳累', keywordR:'放下重担 · 卸任 · 放手',
+      meaningU:'你背负着沉重的责任和压力。你承担了太多，但咬牙仍在坚持。也许是时候审视哪些负担是可以卸下的了。',
+      meaningR:'你正在卸下重担，或准备放手。承认自己负担过重并不是失败，而是智慧。学会说"不"，把精力留给真正重要的事。' },
+    { rank:'Page', num:111, name:'权杖侍从', nameEn:'Page of Wands', symbol:'📨🌿',
+      keywordU:'探索 · 热情 · 自由 · 消息', keywordR:'缺乏方向 · 冲动 · 坏消息',
+      meaningU:'一个热情的新消息或机会正在到来。保持你的好奇心和学习热情，像年轻人一样勇敢探索未知的领域。',
+      meaningR:'缺乏动力或方向的消息。你的热情可能因缺乏实际计划而浪费。在行动之前先理清思路，避免因冲动而做出草率的决定。' },
+    { rank:'Knight', num:112, name:'权杖骑士', nameEn:'Knight of Wands', symbol:'🐎🏜️',
+      keywordU:'冒险 · 行动 · 追求 · 冲动', keywordR:'鲁莽 · 冲动 · 计划不足',
+      meaningU:'你是充满激情和冒险精神的追求者！带着勇气和决心奔向你的目标。行动是第一位的，但这种冲动也是你最大的优势。',
+      meaningR:'你的冲动可能导致鲁莽的决定。热情是好的，但不要忘记思考和规划。否则你的冒险可能会以失败告终。' },
+    { rank:'Queen', num:113, name:'权杖王后', nameEn:'Queen of Wands', symbol:'🌻😺',
+      keywordU:'自信 · 魅力 · 勇气 · 阳光', keywordR:'嫉妒 · 自私 · 缺乏自信',
+      meaningU:'你拥有强大的内在力量和自信。像王后一样优雅而坚定地运用你的影响力。你的热情和魅力正在激励周围的人。',
+      meaningR:'自信可能变成了自私或嫉妒。你的火热的能量如果失控，可能会烧伤你自己和身边的人。保持自信但不自大。' },
+    { rank:'King', num:114, name:'权杖国王', nameEn:'King of Wands', symbol:'🦁🦎',
+      keywordU:'领导力 · 远见 · 企业家精神', keywordR:'专横 · 傲慢 · 要求过高',
+      meaningU:'你是一个天生的领导者。你的远见和决策能力为你赢得了尊重。用你的权威和智慧引领他人走向成功。',
+      meaningR:'你的领导力可能变得专横或傲慢。权力越大，责任越大。不要让成功冲昏了头脑，尊重你的团队和伙伴。' },
+  ],
+  cups: [ // ✨
+    { rank:'Ace', num:200, name:'圣杯王牌', nameEn:'Ace of Cups', symbol:'🕊️🏆',
+      keywordU:'爱情 · 新关系 · 情感丰沛', keywordR:'感情受阻 · 孤独 · 爱被拒绝',
+      meaningU:'新的爱情和情感正在涌入你的生活。你的心被爱充满，无论是对自己还是对他人。接受这份情感的礼物。',
+      meaningR:'情感上的空虚或爱被拒绝。你可能在压抑自己的感情，或一段关系正在面临挑战。不要关闭你的心扉。' },
+    { rank:'Two', num:202, name:'圣杯二', nameEn:'Two of Cups', symbol:'🤝🏆',
+      keywordU:'连接 · 合作 · 平等关系', keywordR:'分离 · 不和谐 · 单恋',
+      meaningU:'深厚的连接和相互吸引。无论是爱情还是合作，这是一段平等和谐的关系。珍惜这份平衡与共鸣。',
+      meaningR:'关系中的不和谐或分离。可能是沟通出了问题，或者感情不再对等。正视问题，坦诚沟通是修复的关键。' },
+    { rank:'Three', num:203, name:'圣杯三', nameEn:'Three of Cups', symbol:'🎉🏆',
+      keywordU:'庆祝 · 友谊 · 欢乐 · 聚会', keywordR:'过度放纵 · 孤立 · 绯闻',
+      meaningU:'与朋友一起庆祝！欢乐、笑声和友谊围绕着你。这是一段值得珍惜的快乐时光，享受与亲密之人的连接。',
+      meaningR:'过度放纵或社交表面的浮华。小心绯闻或朋友的背叛。也可能是你选择了孤立自己，错过了美好的社交时光。' },
+    { rank:'Four', num:204, name:'圣杯四', nameEn:'Four of Cups', symbol:'🌳💭',
+      keywordU:'沉思 · 自省 · 不满 · 冥想', keywordR:'新机会 · 觉醒 · 接纳',
+      meaningU:'你沉浸在沉思中，对现状感到不满或无聊。但你忽略了周围的机遇——一张牌正在从云端递给你。睁大眼睛，打开心扉。',
+      meaningR:'你正在从沉思中觉醒，准备好接受新的机会。不要再沉迷于幻想或自怜，现实中有美好的事物在等待你。' },
+    { rank:'Five', num:205, name:'圣杯五', nameEn:'Five of Cups', symbol:'😢🏆',
+      keywordU:'失落 · 悲伤 · 遗憾 · 失望', keywordR:'接纳 · 释怀 · 向前看',
+      meaningU:'失落和悲伤笼罩着你。你盯着倒下的杯子和洒出的水，却没有看到身后依然竖立的两只杯子。允许自己悲伤，然后转身看到希望。',
+      meaningR:'你正在学习和解与接纳。即使在失去中，你也能找到继续前行的力量。过去已逝，未来的圣杯仍在等待你。' },
+    { rank:'Six', num:206, name:'圣杯六', nameEn:'Six of Cups', symbol:'👧🌺',
+      keywordU:'怀旧 · 回忆 · 童年 · 善意', keywordR:'困于过去 · 无法成长 · 天真的结束',
+      meaningU:'怀旧的温暖感觉涌上心头。过去的回忆和善意正在滋养你。享受这份纯真，但不要沉溺于过去的美好时光。',
+      meaningR:'你可能被困在过去的回忆中，无法向前。成长意味着告别天真的保护。放下对"过去更好"的固执看法。' },
+    { rank:'Seven', num:207, name:'圣杯七', nameEn:'Seven of Cups', symbol:'💭☁️',
+      keywordU:'幻想 · 选择 · 幻觉 · 白日梦', keywordR:'清晰 · 筛选 · 决定',
+      meaningU:'你面前有许多选择，但不是所有的都是真实的。这张牌警告你不要被幻想和过度的白日梦所迷惑。仔细辨别，选择对你真正重要的。',
+      meaningR:'你正在获得清晰的视野，能够在众多选择中分辨真伪。是时候做出决定，停止幻想，开始行动。' },
+    { rank:'Eight', num:208, name:'圣杯八', nameEn:'Eight of Cups', symbol:'👣🏆',
+      keywordU:'放手 · 离开 · 寻找更多 · 精神追求', keywordR:'停滞 · 迷失 · 害怕离开',
+      meaningU:'你选择离开熟悉但不再满足你的事物。放下安逸，踏上寻找更高意义的旅程。这需要勇气，但你的灵魂在召唤你前进。',
+      meaningR:'你可能害怕离开舒适区，或者在旅途中迷失了方向。审视：是什么在阻止你前进？你的犹豫中藏着答案。' },
+    { rank:'Nine', num:209, name:'圣杯九', nameEn:'Nine of Cups', symbol:'⭐🏆',
+      keywordU:'满足 · 如愿 · 自爱 · 成就', keywordR:'表面满足 · 自满 · 内在空虚',
+      meaningU:'你实现了自己的愿望，感到满足和自豪！享受这份来之不易的成就感和自爱。你值得这一切。',
+      meaningR:'表面的满足可能掩盖了内在的空虚。你可能拥有了想要的一切，却仍然感到不满足。重新审视什么对你真正重要。' },
+    { rank:'Ten', num:210, name:'圣杯十', nameEn:'Ten of Cups', symbol:'🌈🏡',
+      keywordU:'幸福 · 完美关系 · 家族 · 和谐', keywordR:'家庭冲突 · 梦想落空 · 破裂',
+      meaningU:'情感上的完美和满足。幸福的家庭和关系，和谐的爱在你周围流淌。珍惜这份难得的安宁与圆满。',
+      meaningR:'家庭的冲突或关系的破裂正在发生。不要绝望——即使彩虹消失了，雨后的天空仍然美丽。修复关系需要时间和耐心。' },
+    { rank:'Page', num:211, name:'圣杯侍从', nameEn:'Page of Cups', symbol:'🔍🏆',
+      keywordU:'直觉 · 灵感 · 新感情 · 创意', keywordR:'情感不成熟 · 被拒绝 · 梦幻破灭',
+      meaningU:'一个充满直觉和灵感的年轻能量进入你的生活。新的感情或创意正在萌芽。跟随你的内心，保持开放。',
+      meaningR:'情感上的不成熟或不切实际的期望。你可能在单恋或你的创意被拒绝。不要气馁——将这次经验作为成长的养分。' },
+    { rank:'Knight', num:212, name:'圣杯骑士', nameEn:'Knight of Cups', symbol:'🐎🏆',
+      keywordU:'浪漫 · 追求 · 邀请 · 魅力', keywordR:'嫉妒 · 失望 · 不被回应',
+      meaningU:'浪漫的追求者或一个诱人的邀请正在靠近。这张牌带着爱和浪漫的能量——不管是人还是机会，都值得你投入。',
+      meaningR:'你的追求可能被拒绝，或浪漫的幻想破灭。嫉妒和失望可能笼罩着你。不要急于下结论，也许你需要的是调整你的期望。' },
+    { rank:'Queen', num:213, name:'圣杯王后', nameEn:'Queen of Cups', symbol:'🐚👑',
+      keywordU:'温柔 · 直觉 · 情感 · 关怀', keywordR:'情绪化 · 依赖 · 过度敏感',
+      meaningU:'你拥抱着温柔和关怀的能量。你的直觉正在高峰，你以同理心和爱照顾着身边的所有人。你的情感是你的力量。',
+      meaningR:'情绪过度或依赖他人。你可能太过感性，或者把别人的需求置于自己之上。在照顾他人之前先照顾好自己的心。' },
+    { rank:'King', num:214, name:'圣杯国王', nameEn:'King of Cups', symbol:'🐸👑',
+      keywordU:'情感成熟 · 慈悲 · 稳重', keywordR:'情感压抑 · 冷酷 · 操纵',
+      meaningU:'你在情感上成熟而稳重。你既能以慈悲之心待人，又能保持情绪的控制和智慧。这是一个值得信赖的情感领导者。',
+      meaningR:'情感被过度压抑或冷酷无情。你可能在用理性封闭自己的感受，或用情感来操纵他人。重新连接你内心的温度。' },
+  ],
+  swords: [ // ✨
+    { rank:'Ace', num:300, name:'宝剑王牌', nameEn:'Ace of Swords', symbol:'⚔️👑',
+      keywordU:'真理 · 清晰 · 突破 · 心智', keywordR:'困惑 · 误解 · 沟通失败',
+      meaningU:'一个突破性的洞见正在到来！清晰的思维和真理照亮了你的心智。这是解决问题、做出重要决定的绝佳时机。',
+      meaningR:'困惑和误解笼罩着你。你的判断可能被偏见或错误信息影响。在做出重大决定之前，先寻求更多的信息和清晰。' },
+    { rank:'Two', num:302, name:'宝剑二', nameEn:'Two of Swords', symbol:'🙈⚔️',
+      keywordU:'犹豫 · 选择困境 · 拒绝面对', keywordR:'决策 · 面对 · 释放',
+      meaningU:'你被困在选择的十字路口，蒙着双眼回避真相。你不想做出选择，但回避本身也是一种选择。勇敢地揭开眼罩。',
+      meaningR:'你正在做出决定，或终于愿意面对一直回避的问题。释放内心的挣扎，清晰的答案正在浮现。' },
+    { rank:'Three', num:303, name:'宝剑三', nameEn:'Three of Swords', symbol:'💔⚔️',
+      keywordU:'心碎 · 悲伤 · 痛苦 · 背叛', keywordR:'愈合 · 释放悲伤 · 宽恕',
+      meaningU:'心碎的痛苦刺穿了你的心。悲伤、背叛或失落正在折磨你。允许自己感受这些痛苦——它们需要被看见才能被疗愈。',
+      meaningR:'愈合正在开始。你正在从心碎中走出来，学会宽恕和释放。伤口还在，但你已经不再被它定义。' },
+    { rank:'Four', num:304, name:'宝剑四', nameEn:'Four of Swords', symbol:'😴⚔️',
+      keywordU:'休息 · 恢复 · 冥想 · 休养', keywordR:'焦躁 · 无法休息 · 康复受阻',
+      meaningU:'你需要休息和恢复。身心都需要一段安静的时间来疗愈和充电。不要愧疚于暂停——它是你继续前行的必要准备。',
+      meaningR:'你可能无法让自己的思绪停下来。焦虑或内疚阻止了你好好休息。如果不主动休息，生活会替你按下暂停键。' },
+    { rank:'Five', num:305, name:'宝剑五', nameEn:'Five of Swords', symbol:'🥀⚔️',
+      keywordU:'冲突 · 失败 · 损失 · 屈辱', keywordR:'和解 · 放下冲突 · 修复',
+      meaningU:'你赢了这场战斗，但代价是什么？争论中的"胜利"可能让你失去了比赢得的东西更重要的。选择你的战斗。',
+      meaningR:'冲突正在平息，你准备放下过去的争斗。和解与修复比固执己见更有价值。有时候，放下才是真正的胜利。' },
+    { rank:'Six', num:306, name:'宝剑六', nameEn:'Six of Swords', symbol:'🚣⚔️',
+      keywordU:'过渡 · 放下 · 移动向平静', keywordR:'被困 · 无法前行 · 未解决的过去',
+      meaningU:'你正在渡过一个困难的时期，带着过去的伤痛向平静的水域前行。放下过去，相信前路会更平静。',
+      meaningR:'你可能被困在过渡期，无法真正向前。过去的问题仍然困扰着你。寻求帮助，你不需要独自渡过这片水域。' },
+    { rank:'Seven', num:307, name:'宝剑七', nameEn:'Seven of Swords', symbol:'🏃⚔️',
+      keywordU:'策略 · 谨慎 · 隐秘 · 诡计', keywordR:'坦诚 · 真相暴露 · 反击',
+      meaningU:'你需要巧妙的策略来应对当前的挑战。不是所有事情都需要正面强攻。有时候，聪明的方式比蛮力更有效。',
+      meaningR:'你的策略可能被识破，或真相即将浮出水面。不诚实的行为会反噬。坦诚面对是最好的策略。' },
+    { rank:'Eight', num:308, name:'宝剑八', nameEn:'Eight of Swords', symbol:'🪢⚔️',
+      keywordU:'束缚 · 自我限制 · 负面思维', keywordR:'解放 · 新视角 · 摆脱枷锁',
+      meaningU:'你被自己的恐惧和负面思维所束缚。眼罩和枷锁大多是你自己施加的。你能看到的出路比你想象的更多。',
+      meaningR:'你正在从自我限制中解放出来。撕掉眼罩，打破枷锁。自由比你想象中更近——只需要一个新的视角。' },
+    { rank:'Nine', num:309, name:'宝剑九', nameEn:'Nine of Swords', symbol:'😰💤',
+      keywordU:'焦虑 · 噩梦 · 担忧 · 失眠', keywordR:'希望 · 治愈 · 寻求帮助',
+      meaningU:'深夜的焦虑和噩梦正在折磨你。你的担忧在黑暗中放大，但请记住——黎明总会到来。这些恐惧大多数只存在于你的脑海里。',
+      meaningR:'治愈正在开始。你正在寻求帮助或在恐惧中找到了希望。不要再独自承受，伸出手，有人愿意倾听。' },
+    { rank:'Ten', num:310, name:'宝剑十', nameEn:'Ten of Swords', symbol:'💀⚔️',
+      keywordU:'终结 · 崩溃 · 结束 · 死亡', keywordR:'重生的希望 · 复苏 · 黎明',
+      meaningU:'结束已经到来。这可能是你经历过的最痛苦的时刻，但请注意——远处的天空正在泛起晨光。在崩溃之后，是新的开始。',
+      meaningR:'即使在最黑暗的时刻，希望的曙光正在出现。你不会被击倒——你会从灰烬中重生。这不是结束，而是一个全新的开始。' },
+    { rank:'Page', num:311, name:'宝剑侍从', nameEn:'Page of Swords', symbol:'🐕💨',
+      keywordU:'好奇心 · 警惕 · 新想法 · 沟通', keywordR:'冲动 · 八卦 · 草率判断',
+      meaningU:'一个新的想法或消息正在到来。保持好奇和警惕，但不要急于下结论。收集信息，理清思路后再行动。',
+      meaningR:'草率的判断或冲动的话语可能带来麻烦。小心八卦和流言蜚语。在说话之前先思考，避免不必要的冲突。' },
+    { rank:'Knight', num:312, name:'宝剑骑士', nameEn:'Knight of Swords', symbol:'🐎💨',
+      keywordU:'敏捷 · 行动力 · 直言不讳', keywordR:'鲁莽 · 攻击性 · 不考虑后果',
+      meaningU:'你以闪电般的速度冲向目标。你的智慧和行动力无人能及。但记住：速度虽好，方向更重要。',
+      meaningR:'你的冲动和攻击性可能正在伤害你和他人。说话做事之前先思考后果。慢一点，让你的智慧引导你的行动。' },
+    { rank:'Queen', num:313, name:'宝剑王后', nameEn:'Queen of Swords', symbol:'👑☁️',
+      keywordU:'独立 · 清晰 · 诚实 · 公正', keywordR:'苛刻 · 冷酷 · 怨毒',
+      meaningU:'你拥有清晰的头脑和公正的判断力。你的独立和诚实是你最大的资产。用你的智慧来分辨真相，做出公正的决定。',
+      meaningR:'你的客观可能变成了冷酷，诚实变成了苛刻。不要用你的剑去伤害别人。智慧需要伴随慈悲才能真正公正。' },
+    { rank:'King', num:314, name:'宝剑国王', nameEn:'King of Swords', symbol:'👑🦋',
+      keywordU:'权威 · 理智 · 分析 · 秩序', keywordR:'专制 · 冷静过度 · 滥用权力',
+      meaningU:'你以理智和权威掌控全局。你的分析能力和清晰的思维为你赢得了尊重。用你的智慧维护秩序和真理。',
+      meaningR:'你的理智可能变成了冷漠，权威变成了专制。不要用你的智慧和地位去压制他人。真正的领导者用智慧服务，而非统治。' },
+  ],
+  pentacles: [ // ✨
+    { rank:'Ace', num:400, name:'星币王牌', nameEn:'Ace of Pentacles', symbol:'🖐️🌍',
+      keywordU:'新机遇 · 繁荣 · 开始 · 物质', keywordR:'错失机会 · 财务损失 · 计划落空',
+      meaningU:'一个新的物质或财务机会正在到来。繁荣和丰盛的基础正在被建立。抓住这个机会，为未来奠定坚实的基础。',
+      meaningR:'你可能错过了一个重要的机会，或者面临财务上的损失。不要灰心——新的机会总会到来，吸取教训。' },
+    { rank:'Two', num:402, name:'星币二', nameEn:'Two of Pentacles', symbol:'🤹🌍',
+      keywordU:'平衡 · 适应 · 优先 · 多任务', keywordR:'失衡 · 过度扩张 · 财务混乱',
+      meaningU:'你正在多个项目或责任之间保持平衡。灵活应对变化的能力是你的优势。保持节奏，不要让自己被压垮。',
+      meaningR:'你可能承担了太多，导致失衡。财务或精力上的过度扩张正在消耗你。重新评估你的优先级，简化你的生活。' },
+    { rank:'Three', num:403, name:'星币三', nameEn:'Three of Pentacles', symbol:'🔨🌍',
+      keywordU:'团队合作 · 技能 · 学习 · 匠心', keywordR:'缺乏团队合作 · 质量不佳 · 忽视细节',
+      meaningU:'团队合作和精湛的技能正在创造卓越的成果。你的专业知识与他人的贡献相结合，比任何个人成就都更有价值。',
+      meaningR:'团队合作出现了问题，或你的工作质量正在下降。不要忽视细节，也不要拒绝他人的帮助。伟大需要集体智慧。' },
+    { rank:'Four', num:404, name:'星币四', nameEn:'Four of Pentacles', symbol:'🗄️🌍',
+      keywordU:'保存 · 保守 · 节俭 · 安全感', keywordR:'贪婪 · 吝啬 · 害怕失去',
+      meaningU:'你紧紧抓住你的资源和安全感。节俭和保护是明智的，但不要因为恐惧而囤积。财富是用来生活的，不是用来收藏的。',
+      meaningR:'贪婪和吝啬正在控制你。害怕失去反而会让你失去更多。学会分享和流动，财富只有在流动中才会增长。' },
+    { rank:'Five', num:405, name:'星币五', nameEn:'Five of Pentacles', symbol:'🥶🌍',
+      keywordU:'贫困 · 担忧 · 孤独 · 困难', keywordR:'复苏 · 帮助 · 改善',
+      meaningU:'你正经历物质上或精神上的困难时期。你感到被遗弃或在寒风中挣扎。但请注意——帮助就在门外，你需要的是打开门。',
+      meaningR:'情况正在好转。救助和新的机会正在到来。不要因为自尊心而拒绝帮助。走出困境的第一步是接受他人的善意。' },
+    { rank:'Six', num:406, name:'星币六', nameEn:'Six of Pentacles', symbol:'⚖️🌍',
+      keywordU:'慷慨 · 给予与接受 · 慈善', keywordR:'不公 · 债务 · 索取过多',
+      meaningU:'慷慨和分享——你是给予者或接收者。适度的给予和接受创造平衡。善待他人，但也记得照顾好自己。',
+      meaningR:'不公平的交换或债务问题。你可能在索取过多，或觉得被索取过度。检查你的关系中是否存在不平等的给予。' },
+    { rank:'Seven', num:407, name:'星币七', nameEn:'Seven of Pentacles', symbol:'🌱🌍',
+      keywordU:'评估 · 耐心 · 等待收获 · 审视', keywordR:'浪费 · 不耐烦 · 错误的投资',
+      meaningU:'你种下的种子正在成长，现在是耐心等待和评估的时候。你的努力没有白费，但收获需要时间。审视你的投资方向是否正确。',
+      meaningR:'你的努力可能被浪费了。也许是时候停止投入一个没有回报的项目。耐心是好的，但固执不是。重新评估你的策略。' },
+    { rank:'Eight', num:408, name:'星币八', nameEn:'Eight of Pentacles', symbol:'🪚🌍',
+      keywordU:'勤奋 · 技能 · 精益求精 · 工作', keywordR:'缺乏动力 · 工作单调 · 平庸',
+      meaningU:'你专注于打磨你的技能和努力工作。每一次重复都在让你变得更好。你的勤奋会在未来结出丰硕的果实。',
+      meaningR:'你失去了对工作的热情，或陷入了单调的日常。当工作变得麻木时，是时候寻找新的意义或挑战了。' },
+    { rank:'Nine', num:409, name:'星币九', nameEn:'Nine of Pentacles', symbol:'🏡🌿',
+      keywordU:'成就 · 独立 · 丰盛 · 自足', keywordR:'不稳定 · 过度工作 · 不平衡',
+      meaningU:'你通过努力获得了独立和丰盛。你为自己创造了一个舒适和安全的生活。享受劳动成果，但不要忘记与世界分享。',
+      meaningR:'你的成功可能来带不平衡。过度工作让你失去了生活的其他方面。单独的成功是孤独的——别忘了身边的人。' },
+    { rank:'Ten', num:410, name:'星币十', nameEn:'Ten of Pentacles', symbol:'🏛️🌍',
+      keywordU:'传承 · 家族 · 财富 · 稳定', keywordR:'破产 · 家庭纠纷 · 遗产问题',
+      meaningU:'世代相传的财富和稳定。家庭的支持和物质的安全感围绕着你。这是一个继承和传承的时刻——你属于一个更大的整体。',
+      meaningR:'家庭纠纷或财务上的损失正在发生。继承和遗产可能引发问题。在金钱和家族之间找到平衡，不要让它撕裂关系。' },
+    { rank:'Page', num:411, name:'星币侍从', nameEn:'Page of Pentacles', symbol:'🔍🌍',
+      keywordU:'学习 · 实践 · 新技能 · 机会', keywordR:'拖延 · 缺乏规划 · 懒惰',
+      meaningU:'一个新的学习机会或实践项目正在到来。培养新技能的热情高涨，保持你的好奇心和勤奋精神。',
+      meaningR:'拖延或缺乏规划正在阻碍你的进步。你的热情需要实际的行动来支撑。设定小目标，从第一步开始。' },
+    { rank:'Knight', num:412, name:'星币骑士', nameEn:'Knight of Pentacles', symbol:'🐴🌍',
+      keywordU:'勤奋 · 可靠 · 务实 · 耐心', keywordR:'停滞 · 懒惰 · 无聊',
+      meaningU:'你是一个可靠而勤勉的工作者。一步一个脚印，踏实向目标前进。你的耐心和务实终将带来丰厚的回报。',
+      meaningR:'你可能陷入了懒惰或无聊的状态。你的务实精神暂时消失了。找回你的责任感和目标感，行动是治愈懒惰的良药。' },
+    { rank:'Queen', num:413, name:'星币王后', nameEn:'Queen of Pentacles', symbol:'🌺🌍',
+      keywordU:'丰饶 · 务实 · 母性 · 物质', keywordR:'物质主义 · 忽视自我 · 不安全感',
+      meaningU:'你像大地母亲一样丰饶和滋养。你的务实和关怀创造了安全和舒适的环境。你既享受物质的美好，也不忘关爱他人。',
+      meaningR:'过度关注物质而忽视了自己的精神需求。安全感来自内心，而非外在的财富。平衡物质追求和自我关爱。' },
+    { rank:'King', num:414, name:'星币国王', nameEn:'King of Pentacles', symbol:'🐂🌍',
+      keywordU:'财富 · 领袖 · 成功 · 商业', keywordR:'贪婪 · 固执 · 不道德',
+      meaningU:'你通过智慧和努力建立了物质上的丰盛帝国。你的商业头脑和领导力令人钦佩。用你的财富造福更多的人。',
+      meaningR:'财富可能让你变得贪婪或固执。为了成功而牺牲道德和关系值得吗？真正的丰盛包括精神上的富足。' },
+  ],
+};
+
+// 展平所有牌
+function buildAllCards() {
+  const all = [...MAJOR_ARCANA];
+  for (const [suitKey, suitData] of Object.entries(MINOR_CARDS)) {
+    const suitInfo = SUIT_NAMES[suitKey];
+    for (const card of suitData) {
+      all.push({
+        ...card,
+        suitKey,
+        suitName: suitInfo.name,
+        suitSymbol: suitInfo.symbol,
+        suitElement: suitInfo.element,
+        suitColor: suitInfo.color,
+      });
+    }
+  }
+  return all;
+}
+
+const ALL_CARDS = buildAllCards();
+
+// ===== 牌阵定义 =====
+const SPREADS = {
+  1: {
+    name:'单张牌',
+    positions: [{ name:'今日指引', desc:'这张牌浓缩了一整天的核心能量走向——你当下的心境、需要注意的方向、以及可以把握的机遇之窗。', symbol:'🔮' }],
+  },
+  3: {
+    name:'三牌阵',
+    positions: [
+      { name:'过去',  desc:'往事的余波仍在你的能量场中回荡——这张牌揭示的并非历史本身，而是那段经历在当下投射出的影子。', symbol:'🌙' },
+      { name:'现在',  desc:'你正站在当下这一刻的十字路口——这张牌映射出你此刻的真实状态、内心的波澜以及前方的分岔路。', symbol:'☀️' },
+      { name:'未来',  desc:'未来的轮廓正从迷雾中浮现——这并非宿命，而是按当前轨迹发展最可能显现的景像，你仍有选择的余地。', symbol:'✨' },
+    ],
+  },
+  4: {
+    name:'四季牌阵',
+    positions: [
+      { name:'春·事业',   desc:'事业的种子正在萌芽——你的行动力、职业方向以及下一阶段需要主动出击的领域。春天代表生长的力量。', symbol:'🌸' },
+      { name:'夏·人际',   desc:'人际的盛夏正在绽放——爱情、友谊、合作关系都在这个季节找到它们的温度。留意谁走进了你的夏天。', symbol:'🌻' },
+      { name:'秋·财运',   desc:'物质的果实等待收获——财务决策、资源管理和物质世界的安全感。秋天考验你如何对待你的收成。', symbol:'🍂' },
+      { name:'冬·内在',   desc:'内心的寒冬是深潜的契机——潜意识、直觉、灵性修行的季节。冬日的寂静中藏着来年春天的全部蓝图。', symbol:'❄️' },
+    ],
+  },
+  5: {
+    name:'五牌阵',
+    positions: [
+      { name:'现状',   desc:'此刻你站在怎样的地面上——你当前所处的实际状况、心态和能量场的焦点所在。',     symbol:'📌' },
+      { name:'挑战',   desc:'横在你面前的是什么——这不是敌人，而是你需要穿越的关口，它恰好是你成长的必经之路。',   symbol:'⚡' },
+      { name:'过去',   desc:'什么把你带到了这里——过往经历中那些仍在影响你当下选择的暗流与功课。',   symbol:'📜' },
+      { name:'未来',   desc:'前方的路正在亮起——不远的将来可能出现的趋势、机遇或转折。',   symbol:'🔭' },
+      { name:'结果',   desc:'所有能量汇聚后的终点——按此轨迹前行，最可能抵达的彼岸。牌面将为你揭示最佳应对策略。',   symbol:'🎯' },
+    ],
+  },
+  6: {
+    name:'关系牌阵',
+    positions: [
+      { name:'你自己',    desc:'你在这段关系中的真实状态——你的期待、不安和内心真正的需求是什么。',                      symbol:'🧑' },
+      { name:'另一方',    desc:'对方在这段关系中的立场与心境——他们眼中的这段关系和你看到的是否相同。',                    symbol:'👤' },
+      { name:'连接',     desc:'你们之间的能量纽带——是什么在吸引彼此靠近，又是什么在制造拉扯。',                    symbol:'🔗' },
+      { name:'优势',     desc:'这段关系中最值得珍惜的礼物——那些让这段关系独特而珍贵的美好元素。',              symbol:'💎' },
+      { name:'挑战',     desc:'需要正视的裂缝在哪里——那些被忽略的、被容忍的、但终究需要被看见的问题。',                      symbol:'⚠️' },
+      { name:'建议',     desc:'这段关系下一段旅程的方向牌——塔罗给出的最善意的指引。',                         symbol:'💡' },
+    ],
+  },
+  7: {
+    name:'七牌阵',
+    positions: [
+      { name:'自我',     desc:'在这一切面前，你是谁——你当下的内在状态、核心能量和你所携带的底色。',     symbol:'🧘' },
+      { name:'渴望',     desc:'你灵魂深处真正想要的——不是表面的欲望，而是那个让你在深夜辗转反侧的真实渴望。',         symbol:'💭' },
+      { name:'阻碍',     desc:'挡在路中间的石块是什么——认清它，你才能决定是搬走它、绕过它、还是把它变成垫脚石。',         symbol:'⛰️' },
+      { name:'助力',     desc:'你身边和内在的隐藏盟友——包括你的天赋、资源、以及那些愿意伸手拉你一把的人和力量。',     symbol:'🤝' },
+      { name:'建议',     desc:'塔罗给你的锦囊——一张浓缩了当下最需要被听见的指引。',         symbol:'📖' },
+      { name:'外部',     desc:'你之外的世界在发生什么——环境、他人、不可控因素如何与你的故事交织。',             symbol:'🌐' },
+      { name:'结局',     desc:'如果一切按此轨迹发展——当所有的元素汇聚，最终的轮廓会是什么样子。',       symbol:'🎭' },
+    ],
+  },
+  8: {
+    name:'六芒星牌阵',
+    positions: [
+      { name:'现状',     desc:'六芒星的中心点——你的能量在此汇聚，这是所有答案的起点。',     symbol:'📌' },
+      { name:'挑战',     desc:'向上三角的顶点——你正在攀登的难关，克服它将唤醒你内在的力量。',         symbol:'⚡' },
+      { name:'过去',     desc:'向下三角的根基——那些已经走过的路、已经完成的功课，仍在通过你的血液流淌。',         symbol:'📜' },
+      { name:'未来',     desc:'向上三角的指向——正在生成的可能性，需要你保持开放去迎接。',       symbol:'🔭' },
+      { name:'意识',     desc:'你知道你知道的——你理性的分析、清晰的判断、主动的选择正在塑造你的现实。',             symbol:'🧠' },
+      { name:'潜意识',   desc:'你不知道你知道的——深层的直觉、梦境中的暗示、未被言说的内在驱动正在悄悄引导你。',      symbol:'🌙' },
+      { name:'建议',     desc:'六芒星的光芒交汇之处——上界与下界、内在与外在共同为你指出的道路。',       symbol:'💡' },
+      { name:'结果',     desc:'六芒星完成时——当上下的三角完全交汇，你将抵达的坐标。',         symbol:'🎭' },
+    ],
+  },
+  10: {
+    name:'凯尔特十字',
+    positions: [
+      { name:'当下',     desc:'十字的中心——这个问题的核心焦点，你此刻所在的准确坐标。',             symbol:'🅰️' },
+      { name:'阻碍',     desc:'横在十字上的第一道梁——正在阻挡你前进的具体事物，它定义了你面临的挑战的本质。',                 symbol:'✖️' },
+      { name:'目标',     desc:'十字的顶端——你的意识想要走向的方向，那个你告诉自己要去的地方。',         symbol:'🎯' },
+      { name:'根基',     desc:'十字的底端——支撑你站立的基石，也是这个问题的深层根源，往往深埋在你不愿触碰的记忆中。',           symbol:'📜' },
+      { name:'最近',     desc:'十字左侧——刚刚发生的、正在消退的、仍然在你能量场中回响的事。',           symbol:'⏳' },
+      { name:'未来',     desc:'十字右侧——正在走近的、即将显化的、你尚未完全看见的可能性。',                 symbol:'🔮' },
+      { name:'自我',     desc:'右下角的你在看着这一切——你在面对此问题时的态度、立场和你选择扮演的角色。',           symbol:'🧘' },
+      { name:'环境',     desc:'右上角的世界在发生什么——客观环境、他人的行为和立场、你无法完全控制的外部力量。',               symbol:'🏠' },
+      { name:'希望',     desc:'左下角的暗室——你的恐惧、你的期待、那些你不敢说出口却在心里反复上演的剧情。',               symbol:'💭' },
+      { name:'结果',     desc:'十字的圆满——当所有能量汇入最终的位置，在十字的最远处等待你的答案。',     symbol:'🎭' },
+    ],
+  },
+};
+
+// ===== 状态变量 =====
+let currentCount = 1;
+let drawnCards = [];
+let drawnReversed = {};
+let isAnimating = false;
+
+// ===== 星空 =====
+function createStars() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 150; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.setProperty('--d', (2 + Math.random() * 4) + 's');
+    star.style.animationDelay = Math.random() * 6 + 's';
+    const size = 1 + Math.random() * 2;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    container.appendChild(star);
+  }
+  for (let i = 0; i < 3; i++) {
+    const ss = document.createElement('div');
+    ss.className = 'shooting-star';
+    ss.style.top = (5 + Math.random() * 30) + '%';
+    ss.style.left = (60 + Math.random() * 35) + '%';
+    ss.style.animationDelay = (8 + Math.random() * 20) + 's';
+    ss.style.animationDuration = (2 + Math.random()) + 's';
+    container.appendChild(ss);
+  }
+}
+
+// ===== 粒子爆发 =====
+function burstParticles(x, y, color, count) {
+  const container = document.getElementById('particleContainer');
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+    const dist = 60 + Math.random() * 100;
+    p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+    p.style.setProperty('--dur', (0.6 + Math.random() * 0.4) + 's');
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = color || '#c084fc';
+    p.style.width = (3 + Math.random() * 4) + 'px';
+    p.style.height = p.style.width;
+    p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    p.style.boxShadow = `0 0 6px ${color || '#c084fc'}`;
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}
+
+// ===== Fisher-Yates 洗牌 =====
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ===== 获取卡片样式类 =====
+function getCardSuitClass(card) {
+  if (card.suit === 'major') return 'suit-major';
+  return card.suitColor || 'suit-major';
+}
+
+// ===== 渲染牌格（带入场动画） =====
+function renderSlots(count) {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+  grid.style.setProperty('--gap', count > 3 ? '0.8rem' : count > 1 ? '1.2rem' : '0rem');
+
+  for (let i = 0; i < count; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'card-slot entering';
+    const center = (count - 1) / 2;
+    const dx = (i - center) * 8;
+    slot.style.setProperty('--dx', dx + 'px');
+    slot.style.animationDelay = (i * 100) + 'ms';
+    slot.dataset.index = i;
+
+    // 光晕环
+    const ring = document.createElement('div');
+    ring.className = 'glow-ring';
+    slot.appendChild(ring);
+
+    const back = document.createElement('div');
+    back.className = 'card-face card-back';
+    back.innerHTML = '<img src="/card_images/back.png" class="card-img" alt="">';
+
+    const front = document.createElement('div');
+    front.className = 'card-face card-front';
+
+    slot.appendChild(back);
+    slot.appendChild(front);
+    slot.addEventListener('click', () => flipCard(i));
+    grid.appendChild(slot);
+
+    // 预加载图片（保证翻牌时已缓存）
+    const card = drawnCards[i];
+    if (card) {
+      const preload = new Image();
+      preload.src = '/card_images/' + card.num + '.png';
+    }
+  }
+
+  // 入场完成后加呼吸动画并提示
+  const totalDelay = count * 100 + 600;
+  setTimeout(() => {
+    document.querySelectorAll('.card-slot.entering').forEach(s => {
+      s.classList.remove('entering');
+      s.classList.add('idle');
+    });
+    // 自动开始翻牌（等图片加载完成后）
+    setTimeout(() => {
+      const first = document.querySelector('.card-slot');
+      if (first) flipCard(0);
+    }, 600);
+  }, totalDelay);
+}
+
+// ===== 翻转单张牌（带粒子爆发 + 自动连续） =====
+let autoRevealTimer = null;
+
+// ===== 罗马数字辅助 =====
+function getRomanNumeral(num) {
+  if (num >= 100 && num < 200) return rankLabel(num - 100);
+  if (num >= 200 && num < 300) return rankLabel(num - 200);
+  if (num >= 300 && num < 400) return rankLabel(num - 300);
+  if (num >= 400 && num < 500) return rankLabel(num - 400);
+  const map = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X',
+    'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
+  return map[num] || num;
+}
+
+function rankLabel(r) {
+  if (r === 1) return 'A';
+  if (r === 11) return '侍';
+  if (r === 12) return '骑';
+  if (r === 13) return '后';
+  if (r === 14) return '王';
+  return r < 10 ? r + '' : '10';
+}
+
+// ===== SVG 卡背人物形象 =====
+function generateBackSVG() {
+  return '<img src="/card_images/back.png" class="card-img" alt="">';
+}
+
+// ===== 卡牌深度数据（来自 RWS 参考）=====
+const CARD_DEEP_DATA = {
+  0: {
+    fortune: ["Watch for new projects and new beginnings", "Prepare to take something on faith", "Something new comes your way; go for it"],
+    keywords: ["freedom", "faith", "inexperience", "innocence"],
+    light: ["Freeing yourself from limitation", "Expressing joy and youthful vigor", "Being open-minded", "Taking a leap of faith", "Attuning yourself to your instincts", "Being eager or curious", "Exploring your potential", "Embracing innovation and change"],
+    shadow: ["Being gullible and naive", "Taking unnecessary risks", "Failing to be serious when required", "Being silly or distracted", "Lacking experience", "Failing to honor well-established traditions and limits", "Behaving inappropriately"],
+    archetype: "The Divine Madman",
+    hebrew: "Aleph/Ox/1",
+    numerology: "0 (off the scale; pure potential)",
+    element: "Air",
+    mythic: "Adam before the fall. Christ as a wandering holy madman. Deity wrapped in human flesh. The Holy Spirit.",
+    questions: ["What would I do if I felt free to take a leap?", "How willing am I to be vulnerable and open?", "How might past experiences help in this new situation?"],
+  },
+  1: {
+    fortune: ["A powerful man may play a role in your day", "Your current situation must be seen as one element of a much larger plan"],
+    keywords: ["capability", "empowerment", "activity"],
+    light: ["Taking appropriate action", "Receiving guidance from a higher power", "Becoming a channel of divine will", "Expressing masculine energy in appropriate and constructive ways", "Being yourself in every way"],
+    shadow: ["Inflating your own ego", "Abusing talents", "Manipulating or deceiving others", "Being too aggressive", "Using cheap illusions to dazzle others", "Refusing to invest the time and effort needed to master your craft", "Taking shortcuts"],
+    archetype: "The Ego/The Self",
+    hebrew: "Beth/House/2",
+    numerology: "1 (origins, unity, seeds)",
+    element: "The Sun/Mercury",
+    mythic: "Thoth, the Egyptian god of wisdom, known to the Greeks as Hermes and to the Romans as Mercury. Christ working miracles. Brahma, the Creator.",
+    questions: ["What am I empowered to do?", "How might my abilities come into play?", "To what extent am I making the most of my talents?"],
+  },
+  2: {
+    fortune: ["A mysterious woman arrives", "A sexual secret may surface", "Someone knows more than he or she will reveal"],
+    keywords: ["intuition", "reflection", "purity", "initiation"],
+    light: ["Listening to your feelings and intuitions", "Exploring unconventional spirituality", "Keeping secrets", "Being receptive", "Reflecting instead of acting", "Observing others", "Preserving purity"],
+    shadow: ["Being aloof", "Obsessing on secrets and conspiracies", "Rejecting guidance from spirit or intuition", "Revealing all", "Ignoring gut feelings", "Refusing to become involved, even when involvement is appropriate"],
+    archetype: "The Virgin/The Maiden",
+    hebrew: "Gimel/Camel/3",
+    numerology: "2 (division, debate, duality)",
+    element: "The Moon",
+    mythic: "The feminine aspect of divinity, particularity when expressed through virginity, as with the Virgin Mary or Isis.",
+    questions: ["What might a rebel against tradition do?", "What isn't being said or revealed?", "What could be achieved by observing and reflecting?"],
+  },
+  3: {
+    fortune: ["Pregnancy is in the cards", "An opportunity to be involved in luxurious sexuality is coming", "Beware a tendency toward addiction"],
+    keywords: ["fertility", "productivity", "ripeness", "nurturing"],
+    light: ["Nurturing yourself and others", "Bearing fruit", "Celebrating your body", "Bearing (literal or figurative) children", "Reveling in luxury", "Mothering those around you in positive ways", "Enjoying your sexuality", "Getting things done"],
+    shadow: ["Overindulging", "Being greedy", "Smothering someone with attention", "Debilitating someone by being overprotective", "Inhibiting productivity by obsessing on productivity", "Being overcome by addictive behavior"],
+    archetype: "The Mother",
+    hebrew: "Daleth/Door/4",
+    numerology: "3 (expression, productivity, output)",
+    element: "Venus",
+    mythic: "Gaia, Mother Earth, Ishtar, DemeterÑmature, reproductive female divinity in every form. Also Aphrodite and Turan. ",
+    questions: ["What would a concerned and capable mother do?", "What can I do that would emphasize growth?", "How can I celebrate my own sensuality and sexuality?"],
+  },
+  4: {
+    fortune: ["A father figure arrives", "A new employer or authority figure will give you orders", "Expect discipline or correction in the near future"],
+    keywords: ["authority", "regulation", "direction", "structure"],
+    light: ["Exercising authority", "Defining limits", "Directing the flow of work", "Communicating clear guidelines", "Being in control of yourself and others", "Tempering aggressive masculinity with wisdom and experience"],
+    shadow: ["Micromanaging", "Crushing the creativity of others with a rigid, iron-fisted approach", "Insisting on getting your own way", "Assuming a dictatorial mindset", "Using overt force to achieve your goals and maintain order"],
+    archetype: "The Father",
+    hebrew: "He[as]/Window/5, or in some decks, Tzaddi/Fish hook/90",
+    numerology: "4 (stability, equality, persistence)",
+    element: "Mars/Aries",
+    mythic: "Masculine gods, including the Hebrew God, the Christian God, Allah, and Zeus. Patriarchs (Abraham) and lawgivers (Moses). Vishnu, the Preserver.",
+    questions: ["How does the issue of control or regulation impact this situation?", "What would a compassionate but strict father do?", "What needs more control?"],
+  },
+  5: {
+    fortune: ["Expect to be caught in a misdeed and punished accordingly", "Pray for forgiveness and confess wrongdoings", "A more experienced man, spiritual leader, or father figure will come into your life"],
+    keywords: ["guidance", "knowledge", "revelation", "belief"],
+    light: ["Teaching or guiding others", "Searching for the truth", "Asking for guidance from a higher power", "Acknowledging the wisdom and experience of others", "Taking vows", "Engaging in heartfelt rituals", "Volunteering"],
+    shadow: ["Using experience as a means of manipulating or misguiding others", "Being dogmatic", "Favoring tradition over what is expedient or necessary", "Going through the motions of empty rituals", "Concealing wisdom", "Restricting access to spiritual truths or the gods"],
+    archetype: "The Guardian/The Church/Faith",
+    hebrew: "Vau/Nail or Spike/6",
+    numerology: "5 (instability, resistance, confrontation, evolution)",
+    element: "Taurus/Earth",
+    mythic: "The Christ, the Apostle Peter, Buddha, Mohammed. Popes, priests, and intercessors of every faith and tradition",
+    questions: ["What role might tradition or religion play in this situation?", "Who authored the rules? Who enforces them? Why?", "How might an experienced guide impact this situation?"],
+  },
+  6: {
+    fortune: ["A new personal or professional relationship blossoms", "Sexual opportunities abound", "Unexpectedly, a friend becomes a lover"],
+    keywords: ["love", "passion", "unity", "choice"],
+    light: ["Being in love", "Showing your love to others", "Expressing passion or romantic feelings", "Aligning yourself with groups or like-minded others", "Bringing people together", "Making well-informed decisions"],
+    shadow: ["Debilitating passion", "Allowing an unhealthy desire for love to motivate destructive behavior", "Disrupting unity", "Working against the best interests of those who care about you", "Ill-informed decisions"],
+    archetype: "The Lover/Sexual Awakening",
+    hebrew: "Zain/Sword/7",
+    numerology: "6 (cooperation, collaboration, interaction)",
+    element: "Gemini",
+    mythic: "Obviously, Adam and Eve, who are depicted in RWS-influenced decks. Also Venus and Cupid, Aphrodite and Eros.",
+    questions: ["What guides my choices?", "What is my heart leading me to do?", "How might this decision transform me as a person?"],
+  },
+  7: {
+    fortune: ["Victory is a certainty", "Move ahead with all plans", "Beware the jealousy of others"],
+    keywords: ["advancement", "victory", "triumph", "success"],
+    light: ["Breaking through barriers", "Moving forward with confidence and authority", "Reaching the pinnacle of success", "Basking in the glory of achievement", "Guiding an effort to total victory", "Establishing yourself as a worthy leader"],
+    shadow: ["Resting on laurels", "Riding roughshod over the feelings or expectations of others", "Focusing more on past successes than future opportunities", "Failing to rein in impulsive behavior"],
+    archetype: "The Victorious Hero",
+    hebrew: "Cheth/Fence/8",
+    numerology: "7 (imagination, inner work, psychology)",
+    element: "Cancer",
+    mythic: "Odysseus. Jason. The search for the Holy Grail. Christ's triumphal entry into Jerusalem.",
+    questions: ["To what extent have I arrived? What will my next challenge be?", "How can I use past achievements to their best advantage?", "What would the criteria for real and meaningful success be?"],
+  },
+  8: {
+    fortune: ["Your self-control will be tested", "A woman will seek to change her partner or lover", "You are a strong, capable person"],
+    keywords: ["discipline", "boldness", "self-discipline", "power", "vitality"],
+    light: ["Imposing restrictions on yourself for your own benefit", "Bringing your passions under the control of reason", "Resisting impulses that work against your best interests", "Taking bold action"],
+    shadow: ["Indulging weakness, even when you know it will damage your health and happiness", "Languishing in addiction", "Allowing your instincts to tame and conquer you", "Failing to take a stand when necessary"],
+    archetype: "The Law",
+    hebrew: "Lamed/Outstretched Arms/30 or Theth/Snake/9",
+    numerology: "8 (movement, work) or 11 = 1 + 1 = 2 (debate, duality)",
+    element: "Libra or Leo",
+    mythic: "Themis or Justitia. Ma'at. Solomon dividing a baby. The Sword of Damocles. The giving of the Ten Commandments.",
+    questions: ["To what extent is your life (or work) balanced?", "How can you achieve greater objectivity?", "What course of action would be fair to everyone concerned?"],
+  },
+  9: {
+    fortune: ["A period of loneliness begins", "One partner in a relationship departs", "A search for love or money proves fruitless"],
+    keywords: ["solitude", "experience", "stillness", "withdrawal"],
+    light: ["Becoming or seeking out a guru", "Going on a retreat", "Recharging spiritual or creative batteries", "Lighting the way for those with less experience", "Stepping back to gain perspective"],
+    shadow: ["Being a loner", "Fearing contact with others", "Becoming a know-it-all", "Inflating claims of expertise", "Hiding your skills and talents out of fear of unworthiness"],
+    archetype: "The Holy Man",
+    hebrew: "Yod/Hand/10",
+    numerology: "9 (fullness, readiness, ripeness)",
+    element: "Virgo",
+    mythic: "The Christ, while fasting 40 days in the wilderness. Chronos, the god of time. Father Time. Hermes.",
+    questions: ["What would happen if I simply withdrew and took no action?", "How can I get some perspective on the situation?", "Who has walked this path before me? How can I enlist his or her help?"],
+  },
+  10: {
+    fortune: ["Some events are in the hands of heaven", "You've lived through this before", "What happened then?"],
+    keywords: ["luck", "randomness", "cycles", "karma", "fate", "revolution"],
+    light: ["Allowing events to unfold", "Seeing the larger pattern in everyday events", "Trusting your luck", "Watching for cycles", "Believing that \"what goes around, comes around\""],
+    shadow: ["Losing money gambling", "Refusing to do your part to bring a plan to fruition", "Taking a fatalistic approach to life", "Fighting the natural course of events"],
+    archetype: "The Fates/Destiny",
+    hebrew: "Koph/Palm/20",
+    numerology: "10 (finality, completion) and 10 = 1 + 0 = 1 (seed, opportunity)",
+    element: "Jupiter",
+    mythic: "The God in the Machine. Deus ex Machina. Clotho, Lachesis, and Atropos. Fortuna.",
+    questions: ["How does this challenge fit into a larger pattern?", "What role does luck play in my circumstances?", "What can I control? How should I know when to relinquish control?"],
+  },
+  11: {
+    fortune: ["A legal verdict will be rendered soon", "Someone is making a decision", "You need to get the facts"],
+    keywords: ["balance", "law", "fairness", "objectivity"],
+    light: ["Making an objective decision", "Weighing an issue carefully before taking action", "Appropriately scaling your reaction to a situation", "Getting all the facts", "Considering evidence", "Deliberating"],
+    shadow: ["Delivering harsh criticism", "Obsessing on rules and regulations", "Playing by the book even when it is destructive or counterproductive to do so", "Confusing snap decisions with timely action", "Playing favorites"],
+    archetype: "The Id",
+    hebrew: "Theth/Snake/9 or Lamed/Outstretched Arms/30",
+    numerology: "11 = 1 + 1 = 2 (debate, duality) or 8 (movement, outer work)",
+    element: "Leo or Libra",
+    mythic: "Samson. Hercules. Daniel in the lion's den. The sinless Christ.",
+    questions: ["How can I enhance my self-discipline?", "What behaviors tempt me? How can I resist?", "What instincts do I continue to struggle with today?"],
+  },
+  12: {
+    fortune: ["A traitor is revealed", "One of your friends is working against you", "Change your ways or suffer the consequences"],
+    keywords: ["enlightenment", "sacrifice", "perspective", "suspension", "reversals"],
+    light: ["Seeing growth opportunities in unpleasant events", "Experiencing a dramatic change in personal perspective", "Making the best of an unforeseen change in your life or work", "Suspending disbelief", "Making sacrifices"],
+    shadow: ["Being untrue to yourself and your values", "Refusing to make sacrifices when appropriate", "Refusing to adapt to new situations", "Blaming others", "Profiting at the expense of others"],
+    archetype: "The Traitor",
+    hebrew: "Mem/Water/40",
+    numerology: "12 = 1 + 2 = 3 (expression, productivity, output)",
+    element: "Water",
+    mythic: "The Crucified Christ. Isaac as a sacrifice. Prometheus bound. Jonah and the whale. Lazarus. Any hanged or sacrificed god. Judas.",
+    questions: ["How can I radically alter my perspective?", "How might being stuck actually be a blessing in disguise?", "How can I help myself see the glass as half full?"],
+  },
+  13: {
+    fortune: ["A relationship or illness ends suddenly", "Limit travel and risk-taking", "General gloom and doom"],
+    keywords: ["ending", "conclusion", "transition", "passage", "departure"],
+    light: ["Bringing an unpleasant phase of life to an end", "Recognizing and celebrating the conclusion of something", "Putting bad habits to rest", "Becoming a new person", "Leaving one person, place, or thing for another", "Letting go"],
+    shadow: ["Obsessing on death and dying", "Refusing to give up old habits or unhealthy relationships", "Insisting that everything and everyone should stay the same forever", "Failing to take good care of yourself"],
+    archetype: "Death",
+    hebrew: "Nun/Fish/50",
+    numerology: "13 = 1 + 3 = 4 (stability, persistence)",
+    element: "Scorpio",
+    mythic: "Christ in the tomb. Hades. Hypnos. Thanatos. Stories of journeys into the underworld.",
+    questions: ["What needs to end?", "How might an ending actually be a blessing in this situation?", "What's next?"],
+  },
+  14: {
+    fortune: ["Someone's using drugs or alcohol to excess", "It's time to get back on that diet"],
+    keywords: ["blending", "synthesis", "mediation", "combination", "harmony"],
+    light: ["Bringing opposites together", "Moderating your actions or emotions", "Finding middle ground", "Reaching compromises", "Synthesizing solutions that please everyone involved", "Using the old to make something new"],
+    shadow: ["Going to extremes", "Disrupting group efforts", "Ignoring healthy approaches to life", "Becoming an addict", "Practicing gluttony", "Tearing something or someone apart", "Breaking alliances"],
+    archetype: "The Mediator",
+    hebrew: "Samekh/Foundation/60",
+    numerology: "14 = 1 + 4 = 5 (catalyst, instability, confrontation)",
+    element: "Sagittarius",
+    mythic: "The angel seen here may be the goddess Iris. By extension, priests, priesthoods, or the transfigured Christ.",
+    questions: ["How can I avoid extremes?", "What does everyone involved have in common?", "How might combining familiar things help me create something new?"],
+  },
+  15: {
+    fortune: ["Adultery and unfaithfulness", "A string of extremely bad luck is coming your way", "Beware evil influences and wolves in sheep's clothing"],
+    keywords: ["shadow", "materialism", "bondage", "delusion"],
+    light: ["Appreciating the luxuries that life has to offer", "Being comfortable in your own skin", "Enjoying your sexuality", "Splurging on an expensive personal item", "Embracing the fact that everyone has a darker side", "Dealing with unhealthy impulses in healthy ways"],
+    shadow: ["Putting excessive emphasis on appearances", "Always wanting more", "Valuing possessions more than people or relationships", "Allowing base instincts to govern your life", "Being selfish", "Attributing your own dark impulses to outside forces or other people"],
+    archetype: "The Shadow, The Other",
+    hebrew: "Ayin/Eye/70",
+    numerology: "15 = 1 + 5 = 6 (adjustment, collaboration)",
+    element: "Capricorn",
+    mythic: "The Biblical Satan, certainly. Fallen angels, including Lucifer. Bacchus and Pan. Tempters and serpents of every stripe.",
+    questions: ["What enslaves me? How can I set myself free?", "How can I re-evaluate the importance I assign to material things?", "To what extent do my cravings define me?"],
+  },
+  16: {
+    fortune: ["Impending disaster", "Cancel plans and reverse decisions", "Someone wants to take you down a notch or two", "Don't hold back; say what you really mean"],
+    keywords: ["demolition", "upheaval", "deconstruction", "disaster", "destruction"],
+    light: ["Breaking out of old, confining habits and mindsets", "Clearing the way for new growth", "Dispelling the influence of an inflated ego", "Getting back to basics", "Stripping away harmful illusions", "Receiving sudden insight"],
+    shadow: ["Clinging to traditions that repress growth", "Engaging in willful blindness", "Rejecting evidence that change is needed", "Ignoring guidance from a higher power", "Maliciously engaging in destructive behavior"],
+    archetype: "The Shattered Ego",
+    hebrew: "Pe[as]/Open Mouth/80",
+    numerology: "16 = 1 + 6 = 7 (psychology, imagination, inner work)",
+    element: "Mars",
+    mythic: "The Tower of Babel. The destruction of Sodom and Gomorrah. Shiva's destructive dance. The lightning of Zeus and Thor.",
+    questions: ["How might the current situation dramatically alter my perspective?", "How might this loss open the door for new growth?", "What attitudes need to be struck down before I proceed?"],
+  },
+  17: {
+    fortune: ["Get an astrology chart drawn up", "Someone is a little too starstruck", "What's happening now has long been fore-ordained"],
+    keywords: ["hope", "optimism", "openness", "certainty", "faith", "longing", "truth"],
+    light: ["Hoping for the best", "Believing good things happen to good people", "Seeing events in the best possible light", "Adopting a generous spirit", "Seeking guidance from above", "Embracing possibility over probability"],
+    shadow: ["Denying unpleasant truths", "Denying personal accountability and saying, \"Things just happen!\"", "Ignoring signs and omens", "Preferring illusion to reality", "Spreading pessimism and stinginess of spirit"],
+    archetype: "The Heavenly Guide",
+    hebrew: "Tzaddi/Fishhook/90 or, in some decks, He[as]/Window/5",
+    numerology: "17 = 1 + 7 = 8 (action, movement, swiftness)",
+    element: "Aquarius",
+    mythic: "The star that guided the Magi. Aphrodite. Venus. The Pleiades. Moses bringing forth water from the rock.",
+    questions: ["What would my higher power direct me to do?", "How can I be less self-conscious and guarded?", "How can I better attune myself to the abundance of life's blessings?"],
+  },
+  18: {
+    fortune: ["Watch for problems at the end of the month", "Someone you know needs to howl at the moon more often", "Someone is about to change his or her mind about an important decision"],
+    keywords: ["mystery", "fantasy", "imagination", "dreams", "uncertainty"],
+    light: ["Enjoying healthy fantasies and daydreams", "Using your imagination", "Practicing magic or celebrating the magic of everyday life", "Attuning yourself to the cycles of nature", "Embracing the unknown"],
+    shadow: ["Becoming unable to separate fantasy from reality", "Suffering from delusions", "Losing your appreciation for the fantastic or magical", "Adopting a ruthlessly logical mindset", "Failing to appreciate life's mysteries"],
+    archetype: "The Holy Feminine/The Crone",
+    hebrew: "Koph/Back of the Head/100",
+    numerology: "18 = 1 + 8 = 9 (fullness, readiness, ripeness)",
+    element: "Pisces",
+    mythic: "Kali, the dark-skinned divine mother associated with time, the eternal night, and the female principle. Hecate, goddess of night and darkness, who, like Anubis, assists others in their travels to the underworld. ",
+    questions: ["How can I face my fears and move forward?", "What helpers can serve me as guides through my personal darkness?", "How can I deal with the unknown in healthy ways?"],
+  },
+  19: {
+    fortune: ["Everything's coming up roses (or sunflowers, whatever the case may be)", "Whatever's on your mind, go for it because you can't lose today"],
+    keywords: ["joy", "brilliance", "validation", "attention", "energy"],
+    light: ["Seeing things clearly", "Experiencing intense joy", "Celebrating your own successes", "Knowing you're good at what you do", "Gaining recognition for your personal genius"],
+    shadow: ["Being dazzled by your own accomplishments", "Becoming absorbed in your own self-image", "Feeling rushed and distracted", "Exerting yourself to the point of exhaustion", "Overstating your abilities or misrepresenting your achievements"],
+    archetype: "The Holy Masculine",
+    hebrew: "Resh/Head/200",
+    numerology: "19 = 1 + 9 = 10 (completion, exhaustion) 1 + 0 = 1 (starting point, opportunity)",
+    element: "The Sun",
+    mythic: "God the Father. Sun gods, including Ra, Apollo, and Helios. The moment of baptism. Claiming a new faith as your own.",
+    questions: ["How can I take best advantage of the attention coming my way?", "What are my highest spiritual goals?", "How can I avoid being bedazzled by the energy swirling around me?"],
+  },
+  20: {
+    fortune: ["An old issue you thought was over will come up again today", "Get ready for huge changes: break-ups, sudden calls from old friends, and unexpected setbacks", "God's trying to get your attention"],
+    keywords: ["revival", "renewal", "resurrection", "evaluation", "invitation"],
+    light: ["Receiving a wake-up call", "Discovering a new purpose in life", "Becoming totally and completely yourself", "Receiving a well-deserved reward", "Passing an evaluation or examination", "Welcoming the start of a new phase of life"],
+    shadow: ["Being weighed in the balances and found wanting", "Failing to measure up to a well-defined standard", "Being caught goofing off or misbehaving", "Failing to prepare for an examination you know is coming", "Rejecting an opportunity to reinvent yourself"],
+    archetype: "Resurrection",
+    hebrew: "Sin/Tooth/300",
+    numerology: "20 = 2 + 0 = 2 (division, duality)",
+    element: "Fire",
+    mythic: "The resurrected Christ. The Last Judgment of Revelation. The phoenix, which rises to new life from its own ashes.",
+    questions: ["What is the main thing I need to realize about myself?", "In what way might the universe be trying to get my attention?", "If I were to reinvent myself, what would I become?"],
+  },
+  21: {
+    fortune: ["Winning the lottery", "Getting your heart's desire", "Having everything you ever imagined having"],
+    keywords: ["wholeness", "integration", "totality", "completeness", "fullness"],
+    light: ["Having it all", "Knowing and loving yourself as completely as possible", "Seeing the interconnection of all things and people", "Enhancing your perspective", "Living life to its fullest", "Understanding the meaning of life"],
+    shadow: ["Allowing greed and envy to prevent you from enjoying what you do possess", "Failing to see the larger design in ordinary events", "Believing that everything that exists can be touched, counted, or measured", "Failing to see the divine reflected in those around you"],
+    archetype: "Enlightenment",
+    hebrew: "Tau/Cross/400",
+    numerology: "21 = 2 + 1 = 3 (expression, result)",
+    element: "Saturn",
+    mythic: "The ascended Christ. The Buddha attaining enlightenment. The alpha and the omega. The completion of the alchemist's great work.",
+    questions: ["For me, what would having it all mean?", "How aware am I of my own connectedness to the world around me?", "What keeps me from having it all right now, today?"],
+  },
+  100: {
+    fortune: ["Someone has the \"hots\" for you", "A new job offer is coming your way", "Walk softly, and carry a big stick"],
+    keywords: ["desire", "inspiration", "vision", "creation", "invention"],
+    light: ["Being inspired", "Identifying an important goal", "Being given the opportunity to do whatever you want to do", "Giving or receiving direction", "Seeing a solution", "Creating something new", "Being aroused, sexually or creatively"],
+    shadow: ["Failing to take advantage of a great opportunity", "Being ineffectual or lazy", "Making an inadequate effort", "Working toward a goal, but lacking the resources or initiative to achieve success", "Setting inappropriate goals", "Failing to take a stand"],
+    archetype: "",
+    hebrew: "",
+    numerology: "1 (The Origin: the starting point, the seed, opportunity)",
+    element: "",
+    mythic: "",
+    questions: ["What do I really want, more than anything else?", "What happens if I let this opportunity pass me by?", "How clearly have I defined my directions, values, and goals?"],
+  },
+  102: {
+    fortune: ["Beware false friends", "Don't be mealy-mouthed; say what you think and do what you want to do"],
+    keywords: ["conflict", "decision", "option", "individuality"],
+    light: ["Having a choice", "Offering or being offered an option", "Seeing the value of another person's approach", "Understanding there's more than one way to \"skin a cat\"", "Successfully doing more than one thing at a time", "Being empowered to make a choice"],
+    shadow: ["Misrepresenting your intentions", "Doing one thing while desiring another", "Changing course mid-stream for no good reason", "Refusing to change your goal even when pursuing it no longer makes sense", "Disregarding the input of others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "2 (The Other: division, debate, duality)",
+    element: "",
+    mythic: "",
+    questions: ["In a conflict, how do you decide who wins?", "What values govern your decision-making process?", "What choice will you make if you make no choice at all?"],
+  },
+  103: {
+    fortune: ["You'll be planning a trip soon", "Be on the lookout: your ship is coming in"],
+    keywords: ["implementation", "action", "exploration"],
+    light: ["Putting a plan into motion", "Taking that critical first step", "Making good things happen", "Going beyond your limits", "Blazing new trails", "Hitting the ground running", "Seeing your plans come to fruition"],
+    shadow: ["Procrastinating", "Knowing what to do, but refusing to do it", "Launching a project without a clear definition of who should do what", "Rejecting an opportunity to try something new", "Failing to finish what you start"],
+    archetype: "",
+    hebrew: "",
+    numerology: "3 (The Result: expression, productivity, output)",
+    element: "",
+    mythic: "",
+    questions: ["How can you make a habit of breaking your habits?", "How can you be a decisive leader in this circumstance?", "What's your action plan for the next week, month, year, or decade?"],
+  },
+  104: {
+    fortune: ["Someone is watching and evaluating your work", "You may get a wedding invitation soon"],
+    keywords: ["celebration", "jubilation", "community", "teamwork", "completion"],
+    light: ["Sharing in a great celebration", "Sharing in a communal sense of achievement and success", "Preparing for a party", "Working together toward a common goal", "Giving or winning awards"],
+    shadow: ["Keeping your nose to the grindstone", "Recognizing good work by demanding more work", "Failing to share in a group celebration", "Allowing sour grapes to poison your moment in the sun", "Refusing to do your part"],
+    archetype: "",
+    hebrew: "",
+    numerology: "4 (The Status Quo: stability, equality, persistence)",
+    element: "",
+    mythic: "",
+    questions: ["To what extent am I doing my part?", "What kind of recognition would be most meaningful?", "How might a celebration now impact community morale?"],
+  },
+  105: {
+    fortune: ["Prepare for a fight with your best friend", "Remember: once you let words loose, you can't take them back"],
+    keywords: ["confrontation", "disruption", "distinction", "objection", "strife"],
+    light: ["Calmly expressing a dissenting opinion", "Allowing someone to use his or her own methods to get a job done", "Opening the floor for discussion or debate", "Comparing progress made so far to standards set earlier"],
+    shadow: ["Berating others for their ridiculous opinions", "Picking fights", "Offering destructive criticism", "Baiting people with barbed remarks", "Disrupting progress with an endless stream of pointless objections"],
+    archetype: "",
+    hebrew: "",
+    numerology: "5 (The Catalyst: instability, resistance, confrontation)",
+    element: "",
+    mythic: "",
+    questions: ["To what extent is your current issue worth fighting for?", "What alternatives are there to outright conflict?", "What happens in a \"fair fight?\" How can you keep this fight fair?"],
+  },
+  106: {
+    fortune: ["Someone is planning a party for you, but not everyone feels so good about your recent success", "Watch out for envious friends"],
+    keywords: ["victory", "achievement", "success", "triumph"],
+    light: ["Outperforming your peers", "Winning a competition", "Being recognized as a capable person", "Having your \"moment in the spotlight\"", "Being cheered on by the crowd", "Getting an award", "Earning the admiration of others", "Telling someone, \"Good job!\""],
+    shadow: ["Being a bad winner", "Allowing your achievements to inflate your ego", "Looking down on people who seem less capable", "Craving to be the center of attention", "Giving or receiving insincere praise", "Envying the achievements of others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "6 (The Adjustment: cooperation, collaboration, interaction)",
+    element: "",
+    mythic: "",
+    questions: ["What kind of recognition do I crave? Why?", "How freely do I praise the achievements of others?", "What happens when the parade is over?"],
+  },
+  107: {
+    fortune: ["Don't be surprised by a personal attack", "Prepare to defend yourself or someone you love"],
+    keywords: ["bravery", "resolve", "determination"],
+    light: ["Refusing to be silenced through fear or intimidation", "Continuing a fight against all odds", "Being fierce", "Defending yourself against physical and emotional attacks", "Refusing to put up with abuse", "Clinging to your values despite all pressure to abandon them"],
+    shadow: ["Having a chip on your shoulder", "Taking unnecessary risks as a means of proving your fearlessness", "Looking for an opportunity to take offense", "Responding to constructive criticism with defensiveness", "Refusing to stand up for yourself and your beliefs"],
+    archetype: "",
+    hebrew: "",
+    numerology: "7 (The Motive: imagination, inner work, psychology)",
+    element: "",
+    mythic: "",
+    questions: ["When do you feel most threatened? When do you get defensive?", "How capable are you of defending yourself?", "What kinds of beliefs are worth defending?"],
+  },
+  108: {
+    fortune: ["Watch for a surprising letter in the mail", "Your whole world is about to be turned on its ear"],
+    keywords: ["speed", "swiftness", "responsiveness", "change"],
+    light: ["Taking swift action", "Moving forward with a plan as quickly as possible", "Energizing yourself", "Adapting to sudden changes", "Taking setbacks in stride", "Embracing the idea that nothing stays the same forever", "Reacting quickly and appropriately to unforeseen problems"],
+    shadow: ["Giving in to panic", "Running in circles and screaming", "Insisting things must always stay the same", "Stirring the pot just to see what will happen", "Rushing others", "Refusing to re-evaluate a schedule or program, even when it's clearly no longer appropriate"],
+    archetype: "",
+    hebrew: "",
+    numerology: "8 (The Action: movement, outer work, swiftness)",
+    element: "",
+    mythic: "",
+    questions: ["How quickly to you adapt to change?", "What would your response be to overwhelming, sudden change?", "What changes are on your horizon? How well have you prepared for them?"],
+  },
+  109: {
+    fortune: ["Don't relax yet; there's more to come", "The test you're facing now is happening for one reason: to show you who your real friends are"],
+    keywords: ["toughness", "persistence", "stamina", "loyalty", "release"],
+    light: ["Sticking with it for the duration", "Fulfilling your promises and obligations", "Bearing up under incredible duress", "Dragging yourself across the finish line", "Picking yourself up by your own bootstraps", "Refusing to quit", "Going as far as you can go and being satisfied with your performance"],
+    shadow: ["Making yourself a martyr", "Abandoning your post", "Giving up at the first sign of opposition", "Being prevented from fulfilling an obligation", "Failing to be dependable", "Refusing to let something go that needs to be released", "Beating a dead horse"],
+    archetype: "",
+    hebrew: "",
+    numerology: "9 (The Completion: fullness, readiness, ripeness)",
+    element: "",
+    mythic: "",
+    questions: ["How do you cope when things get really tough?", "When you get low, what encourages you to go on?", "At what point should you be able to let this situation go?"],
+  },
+  110: {
+    fortune: ["You're worn out", "Back off, take a time out, and let someone else handle things for a while"],
+    keywords: ["exhaustion", "resistance", "burden", "oppression"],
+    light: ["Holding your own in extreme circumstances", "Helping others carry their burdens", "Coming to the aid of the oppressed", "Knowing and being honest about your own limits", "Recognizing when you are not well-suited for a particular task"],
+    shadow: ["Taking on more work than you know you can handle", "Refusing to say \"No\" when you're already overloaded", "Making a habit of working overtime", "Shielding others from facing the consequences of their own poor judgment", "Over-extending yourself on a regular basis"],
+    archetype: "",
+    hebrew: "",
+    numerology: "10 (The End: finality, completion, exhaustion)",
+    element: "",
+    mythic: "",
+    questions: ["How will you know when you reach the end of your rope?", "How easily do you say no to new projects and requests?", "What projects could you delegate...or eliminate?"],
+  },
+  111: {
+    fortune: ["This card represents a young man or woman with a fiery, enthusiastic demeanor, likely born a Cancer, Leo, or Virgo, who wants to start a new relationship with you"],
+    keywords: ["enthusiasm", "eagerness", "confidence", "validation", "affirmation"],
+    light: ["Leaping at a new opportunity", "Being a cheerleader or ardent advocate for your cause", "Being a True Believer", "Taking first steps toward independence", "Trusting in your own abilities", "Asking for feedback"],
+    shadow: ["Basing your entire self-image on what others think", "Seizing every new idea that comes your way without question", "Habitually discounting input or feedback from others", "Being so eager to \"do it yourself\" that you hinder your own progress"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Earth of Fire.",
+    mythic: "",
+    questions: ["How easily do you admit your own inexperience?", "How can you be a better student or employee?", "What qualities would make a total beginner's voyage of discovery easier?"],
+  },
+  112: {
+    fortune: ["This card represents a man with a bold, passionate personality, likely born between July 12th and August 11th, who wants to sweep you off your feet"],
+    keywords: ["boldness", "bravado", "passion", "persuasion", "advocacy"],
+    light: ["Charging ahead", "Making rapid progress", "Refusing limits", "Dazzling those around you with your wit and charm", "Convincing others of your right to leadership", "Convincing others to follow you", "Being a catalyst for change"],
+    shadow: ["Blundering forward with inadequate skill or information", "Running roughshod over the feelings of others", "Using sex appeal to manipulate others", "Forcing your leadership or ideology on others", "Beginning many projects without finishing any"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Air of Fire.",
+    mythic: "",
+    questions: ["To what extent have you defined your ultimate goal?", "What's the fastest way to get the job done? Is this necessarily the best way?", "How long has it been since you looked back to see if others really are following your lead?"],
+  },
+  113: {
+    fortune: ["This card represents a woman with an attractive, appealing personality, likely born between March 11th and April 20th, who wants to charm you into doing things her way"],
+    keywords: ["attention", "attraction", "unification", "collaboration"],
+    light: ["Paying close attention", "Helping others focus on the issue at hand", "Getting everyone to work together", "Identifying common ground", "Bringing people together, despite their differences", "Using reverse psychology"],
+    shadow: ["Being distracted, or using your charms or skills to distract others from the goal", "Calling attention to yourself with negative or unhealthy behaviors", "Disrupting group activities as a means of feeding your own ego"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Water of Fire.",
+    mythic: "",
+    questions: ["How attentive am I?", "How can I draw people's attention to what we have in common?", "To what extent am I able to convince people to do what I want them to do?"],
+  },
+  114: {
+    fortune: ["This card represents an older man with a commanding, charismatic personality, likely born between November 13th and December 12th, who prefers to give directions and have them followed"],
+    keywords: ["creativity", "ingenuity", "achievement", "direction"],
+    light: ["Putting old things together in new and exciting ways", "Coming up with unexpected solutions", "Using your experience to solve puzzles and problems", "Doing what you set out to do", "Directing the efforts of others"],
+    shadow: ["Using your creativity to get out of honest work", "Investing great energy in avoiding responsibility", "Boasting about achievements without putting your expertise to practical use", "Lording it over others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Fire of Fire",
+    mythic: "",
+    questions: ["How confident a leader am I?", "How can I project more confidence?", "How can I offer my expertise in ways that inspire others to follow me?"],
+  },
+  200: {
+    fortune: ["Romance is in the cards", "A new relationship or marriage is just around the corner", "Prayers are answered"],
+    keywords: ["intuition", "spirituality", "affection", "motivation"],
+    light: ["Trusting your feelings", "Opening yourself to spirit", "Accepting and returning affection", "Getting in touch with what motivates you", "Taking advantage of an opportunity to express love to others", "Listening to the still, small voice"],
+    shadow: ["Hiding your feelings", "Spurning an opportunity to love or be loved", "Numbing yourself to spiritual yearnings", "Rejecting the counsel of your heart", "Becoming a puppet of your own emotions", "Indulging in hysteria or obsession"],
+    archetype: "",
+    hebrew: "",
+    numerology: "1 (The Origin: the starting point, the seed, opportunity)",
+    element: "",
+    mythic: "",
+    questions: ["What am I feeling right now?", "How would I go about opening myself to spiritual guidance?", "What motivates me the most - pleasure or pain? Why?"],
+  },
+  202: {
+    fortune: ["Someone has a secret crush on you", "Relationships should be mutual; get rid of a leech"],
+    keywords: ["union", "attraction", "combination", "affection"],
+    light: ["Being drawn to someone", "Longing for someone or something", "Acting on your desires", "Discovering a feeling is mutual", "Doing what makes you feel good", "Merging", "Healing broken ties", "Admitting two people feel differently about each other and moving on"],
+    shadow: ["Burning bridges", "Becoming caught up in unhealthy codependency", "Shutting out anyone but your chosen few", "Obsessing on someone who does not return your affections", "Despairing over finding \"The One\"", "Deceiving yourself about your true orientation"],
+    archetype: "",
+    hebrew: "",
+    numerology: "2 (The Other: duality, division, debate)",
+    element: "",
+    mythic: "",
+    questions: ["How can I make sure that what I'm feeling is mutual?\",\"When was the last time I felt \"in love\" with someone or something?", "What do you need in order to feel emotionally stable?"],
+  },
+  203: {
+    fortune: ["Unconventional romance is coming your way: a love affair with someone you've always dismissed"],
+    keywords: ["celebration", "expression", "community", "friendliness"],
+    light: ["Celebrating your feelings or connections with others", "Expressing joy through song, dance, or physical affection", "Working together with others who share your feelings", "Performing acts of service as a way of saying, \"I love you\"", "Embracing unconventional romantic arrangements"],
+    shadow: ["Mistaking giddiness for true affection", "Being dominated by manic emotions", "Expecting everyone to always feel the same way you do", "Demanding unreasonable support from friends or family", "Partying to a dangerous or unhealthy extent"],
+    archetype: "",
+    hebrew: "",
+    numerology: "3 (The Result: expression, productivity, output)",
+    element: "",
+    mythic: "",
+    questions: ["What's worth celebrating in my life?", "How can I demonstrate my feelings in appropriate ways?", "What can I do to show my partner how I really feel?"],
+  },
+  204: {
+    fortune: ["A lover is getting restless", "Find out what he or she needs, or new opportunities may lure your partner away"],
+    keywords: ["boredom", "listlessness", "lethargy", "stability", "ingratitude"],
+    light: ["Maintaining your emotional stability", "Refusing to give in to overwhelming emotions", "Appreciating what you have and refusing to take it for granted", "Seeing the value of long-term commitments"],
+    shadow: ["Being bored", "Daydreaming at the expense of your work", "Refusing to be engaged by opportunity", "Taking people and relationships for granted", "Ignoring romantic or spiritual opportunities", "Spurning inspiration", "Feeling everything should stay \"just like it is\""],
+    archetype: "",
+    hebrew: "",
+    numerology: "4 (The Status Quo: stability, equality, persistence)",
+    element: "",
+    mythic: "",
+    questions: ["How can I use this \"downtime\" to my best advantage?", "How can I show my partner that I don't take him or her for granted?", "To what extent is my mood blinding me to new opportunities?"],
+  },
+  205: {
+    fortune: ["A breakup looms", "Don't cry over spilt milk", "Take your lumps and get back in the saddle"],
+    keywords: ["loss", "despair", "re-evaluation", "regret", "uncertainty", "repentance"],
+    light: ["Acknowledging loss and moving on", "Focusing on how the glass remains \"half-full\"", "Finding the silver lining in a dark cloud", "Recognizing that loss is a natural part of life", "Embracing healthy grief", "Learning lessons from harsh consequences"],
+    shadow: ["Wallowing in unhealthy grief or self-pity", "Refusing to move on and let go", "Clinging to the past", "Obsessing on past lives and past loves", "Failing to live in the present", "Beating yourself up over past mistakes", "Allowing fear of failure to limit your efforts"],
+    archetype: "",
+    hebrew: "",
+    numerology: "5 (The Catalyst: instability, resistance, confrontation)",
+    element: "",
+    mythic: "",
+    questions: ["How do I tend to deal with loss?", "What life lesson might I be learning now?", "How can I shift my attention from the past to the future?"],
+  },
+  206: {
+    fortune: ["A stingy spirit is strangling your enjoyment of life", "Loosen up and think of others for once, why don't you?"],
+    keywords: ["charity", "sharing", "sacrifice", "cooperation", "fairness"],
+    light: ["Donating your time and talents to others", "Taking satisfaction in knowing how your efforts will aid others", "Creating a \"win-win\" scenario", "Giving even when you know repayment is not possible", "Being motivated to do a good deed"],
+    shadow: ["Linking your sense of self-worth to the appraisals of others", "Striving to appear more needy than you really are", "Taking undeserved or unmerited charity", "Bragging about your charitable efforts", "Profiteering in times of distress", "Refusing to share a burden"],
+    archetype: "",
+    hebrew: "",
+    numerology: "6 (The Adjustment: cooperation, collaboration, interaction)",
+    element: "",
+    mythic: "",
+    questions: ["What gifts do I possess? How freely do I give them?", "How can I practice unconditional giving?", "How would things change if I became a more charitable person?"],
+  },
+  207: {
+    fortune: ["You're being fed a line", "Rather than be dazzled by fancy words and promises, demand something real"],
+    keywords: ["imagination", "dreams", "illusions", "goals"],
+    light: ["Motivating yourself with images of future success", "Using visualization to encourage progress", "Taking an imaginative or creative approach to problem solving", "Making dreams come true", "Gleaning insight from personal visions"],
+    shadow: ["Obsessing on imaginary fears or uncertain consequences", "Giving in to emotional or political terrorism", "Spending more time dreaming than working", "Failing to envision the possible repercussions of your choices", "Being controlled by fear"],
+    archetype: "",
+    hebrew: "",
+    numerology: "7 (The Motive: imagination, inner work, psychology)",
+    element: "",
+    mythic: "",
+    questions: ["What do you want most? What do you fear most? How are these related?", "How is your imagination working for you? Against you?", "How might a clearer personal vision help you choose a single cup from the many available?"],
+  },
+  208: {
+    fortune: ["Someone's \"stepping out\" on you, now or in the near future", "Maybe it's time to quit talking about the problem and just move on"],
+    keywords: ["longing", "dissatisfaction", "quest", "departure", "withdrawal"],
+    light: ["Wanting something better", "Blazing your own trail", "Realizing there must be more to life", "Leaving an unhealthy situation behind", "Starting your own business", "Going on a retreat", "Seeking the \"still, small voice\""],
+    shadow: ["Being implacable", "Finding fault", "Nitpicking", "Refusing to settle down", "Running away from problems or confrontations", "Saying, \"It's my way or the highway!\"", "Harping on past mistakes and disappointments", "Threatening to quit as a strategy to get your way"],
+    archetype: "",
+    hebrew: "",
+    numerology: "8 (The Action: movement, outer work, swiftness)",
+    element: "",
+    mythic: "",
+    questions: ["What do I need to leave behind once and for all?", "If I left in search of \"more,\" what would I be looking for, exactly?", "How might a retreat enhance my perspective?"],
+  },
+  209: {
+    fortune: ["Whatever you want, you'll get it"],
+    keywords: ["satisfaction", "sensuality", "luxury", "pleasure"],
+    light: ["Being delighted with your own achievements", "Recognizing your own talents and abilities", "Reveling in the good things life has to offer", "Indulging yourself", "Relaxing and unwinding", "Having everything you need in order to feel complete"],
+    shadow: ["Being smug", "Satisfying yourself at the expense of others", "Being selfish", "Over-indulging", "Avoiding work that needs to be done", "Claiming achievements or skills you do not possess", "Never being satisfied, no matter how much you have"],
+    archetype: "",
+    hebrew: "",
+    numerology: "9 (The Completion: fullness, readiness, ripeness)",
+    element: "",
+    mythic: "",
+    questions: ["What is true happiness?", "If I could have anything, what would I have?", "What is my attitude toward luxury? Do I deserve it?"],
+  },
+  210: {
+    fortune: ["Marriage and family are in the cards", "Expect a friendship to blossom into a romance"],
+    keywords: ["joy", "fulfillment", "overwhelming emotion", "giddiness"],
+    light: ["Having more than you ever dreamed", "Being deeply thankful for all you've been given", "Recognizing the Hand of God in the gifts the Universe brings your way", "Experiencing transcendent joy", "Achieving domestic bliss"],
+    shadow: ["Comparing your achievements or relationships to unrealistic fantasy standards", "Experiencing emotions so intense they blunt your ability to cope with reality", "Feeling overwhelmed", "Envying the achievements and happiness of others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "10 (The End: finality, completion, exhaustion)",
+    element: "",
+    mythic: "",
+    questions: ["Who gets to define what \"joy\" consists of?", "What course of action is available when you feel overwhelmed?", "How might vows or promises play a role in achieving a greater level of joy in your life?"],
+  },
+  211: {
+    fortune: ["This card represents a young man or woman with a watery, dreamy demeanor, likely born a Libra, Scorpio, or Sagittarius, who wants to start a new relationship with you"],
+    keywords: ["enthusiasm", "first impressions", "romanticism", "superficiality"],
+    light: ["Showing your emotions freely", "Throwing yourself into romance", "Nursing a secret crush", "Indulging in romantic fantasy", "Starting a new relationship", "Recalling your first love", "Experiencing love for the first time", "Converting to a new religion"],
+    shadow: ["Mistaking a crush for true love", "Reading romantic intention into innocent action", "Frantically trying to impress others", "Indulging in overly-sweet sentimentality", "Pretending to more romantic or spiritual experience than you possess"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Earth of Water.",
+    mythic: "",
+    questions: ["How worried are you that others will see you as foolish or inexperienced?", "To what extent can you be honest about your lack of experience in love and faith?", "How can you maintain enthusiasm over time?"],
+  },
+  212: {
+    fortune: ["This card represents a man with an emotional, sensitive personality, likely born between October 13th and November 11th, who wants you to rally around his latest passionate cause"],
+    keywords: ["fervor", "zeal", "moodiness", "illumination"],
+    light: ["Being deeply committed to a cause", "Giving in to strong emotions, from excitement to depression", "Acting on intuition alone", "Solving problems intuitively", "Believing in and basing decisions on ideals instead of realities", "Bringing intuition or passion to the table"],
+    shadow: ["Becoming a fanatic", "Rejecting information that suggests your intuitions are misguided", "Allowing your emotions to control you", "Giving in to jealousy, confrontation, and peer pressure", "Hiding or ignoring intuitive insights"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Air of Water.",
+    mythic: "",
+    questions: ["How prone to emotional extremes are you?", "What's the difference in driving passion and blind zeal?", "How can you inspire others without inciting a riot?"],
+  },
+  213: {
+    fortune: ["This card represents a woman with an emotional, deeply spiritual nature, likely born between June 11th and July 11th, who uses emotional and spiritual appeals to sway others to her point of view"],
+    keywords: ["insightfulness", "spirituality", "compassion", "empathy", "instinct"],
+    light: ["Allowing yourself to be moved by the plight of others", "Feeling strong emotions", "Possessing unusual sympathy or empathy", "Trusting your feelings to guide you", "Calling on psychic abilities", "Achieving unity with Spirit"],
+    shadow: ["Becoming so caught up in matters of Spirit, you become detached from the world", "Allowing empathy to disable you (instead of inspire action)", "Using psychic abilities to wield covert influence", "Wallowing in emotionalism, sentiment, or self-pity"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Water of Water.",
+    mythic: "",
+    questions: ["How do I handle strong emotions?", "To what extent am I a victim of my own feelings?", "How can I move from reflection to action?"],
+  },
+  214: {
+    fortune: ["This card represents an older man with a gentle, sensitive presence, likely born between February 9th and March 10th, who is known for his fairness and tolerance"],
+    keywords: ["wisdom", "diplomacy", "restraint", "composure"],
+    light: ["Keeping a stiff upper lip", "Being brave and clear in the face of adverse circumstances", "Sharing experience as a way of comforting others", "Making fair and empathetic decisions", "Honoring the spirit, not just the letter, of the law"],
+    shadow: ["Allowing yourself to become rigid and unemotional", "Making unfair decisions based on a hidden agenda", "Making decisions without regard for their emotional impact on others", "Abusing spiritual authority", "Using emotional or spiritual leverage to exercise unhealthy control over others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Fire of Water.",
+    mythic: "",
+    questions: ["What wise person could be consulted for good advice?", "How can I make sure I'm being as objective and fair as possible?", "To what extent am I capable of keeping a \"stiff upper lip?\""],
+  },
+  300: {
+    fortune: ["The time to make a choice is now", "Stop wavering and do what you know is best"],
+    keywords: ["logic", "objectivity", "intellect", "choice"],
+    light: ["Making objective decisions", "Applying logic", "Reasoning your way out of a difficult situation", "Solving puzzles", "Thinking things through", "Emphasizing the facts", "Clearing your mind", "Seeking clarity"],
+    shadow: ["Applying ruthless or twisted logic", "Gloating over your own superior intellect", "Using quick thinking to deceive or confuse others", "Confusing snap judgments with quick thinking", "Making decisions without thinking through consequences"],
+    archetype: "",
+    hebrew: "",
+    numerology: "1 (The Origin: the starting point, the seed, opportunity)",
+    element: "",
+    mythic: "",
+    questions: ["If I made my decision purely based on reason and logic, what would my decision be?", "What do I think about my own problem-solving ability?", "Who can supply me with the pure and simple facts?"],
+  },
+  302: {
+    fortune: ["Sometimes, the only way to win is to refuse to fight", "You're stuck for now; let time pass before taking action"],
+    keywords: ["denial", "debate", "impasse", "truce"],
+    light: ["Refusing to make a decision without getting the facts", "Exploring both sides of an argument", "Arguing passionately for what you believe in", "Weighing the issues", "Encouraging the open exchange of ideas", "Discussing political or religious issues without getting \"hot under the collar\""],
+    shadow: ["Rejecting evidence that conflicts with dearly-held beliefs", "Arguing with others just for the sake of doing so", "Nit-picking", "Putting off a decision because you're afraid to face the consequences", "Preventing others from getting the information they need to make good decisions"],
+    archetype: "",
+    hebrew: "",
+    numerology: "2 (The Other: duality, division, debate)",
+    element: "",
+    mythic: "",
+    questions: ["What information do I need to get past this impasse?", "How can I get past being defensive and see the facts?", "What viewpoints, other than my own, play a role in this situation?"],
+  },
+  303: {
+    fortune: ["Breakups and infidelity abound", "What hurts now, though, will turn out to be good for you later on"],
+    keywords: ["variance", "difference", "dissatisfaction", "heartache", "rejection"],
+    light: ["Being brave enough to see things as they really are", "Exercising your critical eye", "Being your own best critic", "Acknowledging that things don't always turn out as planned", "Moving past heartbreak to embrace a painful truth"],
+    shadow: ["Wallowing in despair", "Allowing yourself to be completely crushed by the thoughts, words, or deeds of another", "Judging yourself too harshly", "Holding yourself to an unrealistic standard of excellence", "Wearing your heart on your sleeve while carrying a chip on your shoulder"],
+    archetype: "",
+    hebrew: "",
+    numerology: "3 (The Result: expression, productivity, output)",
+    element: "",
+    mythic: "",
+    questions: ["How can I get past my depression?", "To what extent are my emotions a matter of choice?", "How can I learn from the mistakes of the past?"],
+  },
+  304: {
+    fortune: ["Don't make any decision now", "Wait, and you'll be glad you did"],
+    keywords: ["meditation", "contemplation", "perspective", "mindset"],
+    light: ["Thinking over your plans before putting them into action", "Pausing to meditate or clear your mind", "Taking time to understand someone or something before criticizing it", "Resting", "Occupying your thoughts with a healthy distraction"],
+    shadow: ["Failing to think things through", "Mistaking procrastination for thoughtfulness", "Adopting a point of view and refusing to reconsider your conclusions, even when presented with refuting evidence", "Allowing chaos and whimsy to dominate your thoughts"],
+    archetype: "",
+    hebrew: "",
+    numerology: "4 (The Status Quo: stability, equality, persistence)",
+    element: "",
+    mythic: "",
+    questions: ["How long has it been since you deliberately took a \"time out?\"", "How difficult is it for you to meditate?", "What would happen if you simply refused to make a decision today?"],
+  },
+  305: {
+    fortune: ["Someone is stealing from you, financially or romantically", "Be wary of friends who talk behind your back"],
+    keywords: ["selfishness", "hostility", "irrationality", "self-preservation"],
+    light: ["Acting in your own best interest", "Choosing to stand up for yourself", "Not backing down from disagreement and discord", "Taking a stand", "Refusing to go along with an unethical plan", "Knowing when to bend the rules"],
+    shadow: ["Taking advantage of others", "Intimidating others", "Acting in an unethical manner", "Picking fights", "Using words to goad others into violence and irrationality", "Ignoring rules you've agreed to abide by", "Looking out for yourself while allowing harm to come to others", "Gloating over victory"],
+    archetype: "",
+    hebrew: "",
+    numerology: "5 (The Catalyst: instability, resistance, confrontation)",
+    element: "",
+    mythic: "",
+    questions: ["How do I behave when I win? What does that say about me?", "How can I do what's necessary without making others feel defeated?", "What's the difference between selfish action and acting in my own best interest?"],
+  },
+  306: {
+    fortune: ["You'll soon go on a long journey over water", "Actions have unexpected consequences, so be prepared"],
+    keywords: ["adaptation", "adjustments", "science", "travel"],
+    light: ["Making the best of a bad situation", "Recovering from defeat", "Resetting expectations", "Making allowances for unexpected circumstances", "Helping others who find themselves in dire circumstances", "Changing the way you see the world", "Broadening your perspective through study or travel"],
+    shadow: ["Refusing to accept that things have changed", "Playing the victim", "Rejecting the idea that your actions have consequences", "Applying scientific criteria to matters of faith, or confusing faith with science", "Believing the whole world should be like your small corner of it"],
+    archetype: "",
+    hebrew: "",
+    numerology: "6 (The Adjustment: cooperation, collaboration, interaction)",
+    element: "",
+    mythic: "",
+    questions: ["What assumptions govern my thinking?", "How willing am I to lend aid to others? To request it when I need it?", "How prepared am I to deal with change? With unexpected outcomes?"],
+  },
+  307: {
+    fortune: ["Don't assume people around you are worthy of your trust", "Ask for an accounting of where people have been, and what they've been doing"],
+    keywords: ["dishonesty", "presumption", "sneakiness", "assumptions"],
+    light: ["Refusing to do something dishonest, even when there's no chance of ever being caught", "Handling a difficult situation with finesse", "Pointing out assumptions", "Acting ethically in public and in private", "Living a life that is beyond reproach"],
+    shadow: ["Stealing or lying", "Doing whatever you can get away with, simply because you can", "Looking for a way around consequences", "Justifying wicked behavior by focusing on the wickedness of others", "Failing to examine your own motives and prejudices"],
+    archetype: "",
+    hebrew: "",
+    numerology: "7 (The Motive: imagination, inner work, psychology)",
+    element: "",
+    mythic: "",
+    questions: ["What assumptions am I making?", "How well-defined is my sense of ethics?", "How should I respond when I know others are breaking the rules?"],
+  },
+  308: {
+    fortune: ["Get over playing the victim", "Once you realize you are your own biggest obstacle, nothing can hold you back"],
+    keywords: ["restriction", "limitation", "confinement", "helplessness"],
+    light: ["Honoring limits", "Respecting the rules", "Deciding to go on a diet for your health's sake", "Recognizing you cannot always be in control", "Identifying obstacles to further progress", "Refusing to think about unhealthy or unethical options", "Asking for assistance"],
+    shadow: ["Feeling trapped", "Being lost in a maze of rules and regulations", "Giving in to despair", "Playing the victim", "Allowing others to dictate what you can and cannot do", "Being rendered helpless", "Having very few options", "Failing to look for a way out"],
+    archetype: "",
+    hebrew: "",
+    numerology: "8 (The Action: movement, outer work, swiftness)",
+    element: "",
+    mythic: "",
+    questions: ["Who's empowered to cut through the red tape?", "What, exactly, are the obstacles? What resources, exactly, are needed to move them?", "To what extent is your powerlessness a matter of attitude?"],
+  },
+  309: {
+    fortune: ["If you take the action you're considering now, you'll be sorry in the future"],
+    keywords: ["remorse", "worry", "distraught", "conclusion"],
+    light: ["Refusing to worry about what you cannot control", "Rejecting anxiety", "Judging your own performance with kindness and gentleness", "Using meditation to quiet a troubled mind", "Confronting nightmares and fears", "Drawing a conclusion and putting an issue out of your mind"],
+    shadow: ["Torturing yourself with regrets", "Second-guessing your every move", "Beating yourself up for your mistakes", "Depression", "Obsessing on errors and overlooked details", "Refusing to handle stress in healthy ways", "Ruining your ability to appreciate the present by dwelling on the past", "Debating irreversible decisions"],
+    archetype: "",
+    hebrew: "",
+    numerology: "9 (The Completion: fullness, readiness, ripeness)",
+    element: "",
+    mythic: "",
+    questions: ["What role does worry play in your current situation?", "To what other ends might you devote the energy you're giving to anxiety?", "How can you know when it's time to stop thinking and start acting?"],
+  },
+  310: {
+    fortune: ["Disaster", "Put off plans and do not take action until omens are better"],
+    keywords: ["exhaustion", "ruin", "disaster", "stamina", "obsession"],
+    light: ["Seeing the signs that you've reached your limits", "Paying attention to what your body is trying to tell you", "Giving in to the need for rest and renewal", "Acknowledging that you've hit bottom", "Committing to a turnaround", "Knowing the worst is over"],
+    shadow: ["Accepting defeat prematurely", "Driving yourself to total exhaustion, especially mentally", "Experiencing a mental breakdown", "Obsessing on a problem to the breaking point", "Giving up", "Refusing to move from thought to action", "Deeply unhealthy thoughts"],
+    archetype: "",
+    hebrew: "",
+    numerology: "10 (The End: finality, completion, exhaustion)",
+    element: "",
+    mythic: "",
+    questions: ["What are the signs that the time for debate is over?", "How can you tell when interest has given way to obsession?", "When your own limits are reached, where can you turn for aid?"],
+  },
+  311: {
+    fortune: ["This card represents a young man or woman with an airy, intellectual demeanor, likely born a Capricorn, Aquarius, or Pisces, who wants to learn something new from you or have a discussion with you"],
+    keywords: ["student", "apprentice", "scholarship", "information"],
+    light: ["Pursuing a course of study", "Asking good questions", "Investing time in study and practice", "Doing research", "Making a habit of learning new things", "Starting an investigation", "Outlining what you need to know", "Finding a mentor or teacher"],
+    shadow: ["Pretending to knowledge or sophistication you do not possess", "Cheating on an exam", "Feigning interest as a way of gaining favor", "Considering only the evidence that supports conclusions you've already drawn", "Rejecting the wise counsel of experienced teachers"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Earth of Air.",
+    mythic: "",
+    questions: ["How comfortable are you with revealing your own ignorance?", "What are the marks of a good student?", "To what extent are you open to new information?"],
+  },
+  312: {
+    fortune: ["A blunder leads someone to say something he or she regrets", "If this was you, be prepared to apologize and move on"],
+    keywords: ["bluntness", "intelligence", "incisiveness", "investigation"],
+    light: ["Speaking your mind", "Making your opinions known", "Offering constructive criticism", "Sharing your knowledge", "Making insightful observations", "Pinpointing the problem", "Clarifying what others have said", "Giving clear direction to others", "Uncovering the truth"],
+    shadow: ["Stating your opinions as fact", "Picking fights", "Starting arguments", "Using clever insults to undermine the confidence of others", "Tossing reason out the window", "Speaking without taking the feelings of others into account", "Going on a witch hunt", "Distorting evidence"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Air of Air.",
+    mythic: "",
+    questions: ["What do I really need to know?", "To what extent have I investigated the facts behind my situation?", "How can I share what I know without alienating others?"],
+  },
+  313: {
+    fortune: ["This card represents a woman with an artistic, intellectual nature, likely born between September 12th and October 12th, who uses clever, positive communication to sway others to her point of view"],
+    keywords: ["grace", "skill", "wit", "charm", "aptitude"],
+    light: ["Exercising tact or using diplomacy", "Defusing a tense situation", "Knowing what to say and how to say it", "Making others feel comfortable and confident", "Bringing out the best in everyone", "Having a way with words", "Telling jokes", "Possessing a knack for music, math, art, or science"],
+    shadow: ["Knowing exactly what to say to destroy another person", "Withholding critical information", "Using a barbed tongue to upset others", "Employing sarcasm", "Mimicking others unkindly", "Making light of the less fortunate", "Being disrespectful", "Failing to use the talent you've been given"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Water of Air.",
+    mythic: "",
+    questions: ["What do I have a knack for? How might my special gift prove useful now?", "To what extent am I capable of saying what needs to be said?", "What is the best possible way to say what I want to say?"],
+  },
+  314: {
+    fortune: ["This card represents an older man with an insightful, deliberate spirit, likely born between May 11th and June 10th, who is known for his integrity and sharp decision-making ability"],
+    keywords: ["genius", "expertise", "decision", "verdict"],
+    light: ["Expressing yourself with firmness and authority", "Rendering a final decision", "Consulting an expert", "Calling in advisors and consultants", "Coming to a final conclusion", "Reaching a beneficial agreement based on sound information"],
+    shadow: ["Insisting on having the last word", "Flaunting your intellectual capability", "Talking \"over the heads\" of others", "Waffling on an important decision", "Constantly changing your mind", "Refusing to make choices that are in your own best interest", "Wishing in vain you could take back what's been said"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Fire of Air.",
+    mythic: "",
+    questions: ["What would your decision be if you had to render a binding verdict right now?", "How comfortable are you saying exactly what you mean? How often do you temper what you have to say for fear of offending others?", "If you were to ask others, \"What's my area of expertise?\" what would they say?"],
+  },
+  400: {
+    fortune: ["Your health will improve", "The check you're looking for really is in the mail"],
+    keywords: ["health", "wealth", "practicality", "receiving"],
+    light: ["Outlining a plan for achieving prosperity", "Becoming aware of opportunities to improve income or health", "Realizing you have everything you need", "Appreciating everything the Universe has given you", "Receiving the perfect gift at the perfect time"],
+    shadow: ["Indulging in relentless consumerism", "Wanting more, no matter how much you have", "Obsessing on your account balance", "Suffering from hypochondria", "Consuming blessings without expressing gratitude", "Taking what you want without concern for the needs of others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "1 (The Origin: the starting point, the seed, opportunity)",
+    element: "",
+    mythic: "",
+    questions: ["If I made my decision based solely on practical concerns, what would my decision be?", "What resources are available to me?", "What will be the physical and financial impact of my decisions?"],
+  },
+  402: {
+    fortune: ["It's time to balance the budget", "Avoid the temptation to spend critical funds on frivolous goods"],
+    keywords: ["evaluation", "decision", "budgeting", "diagnosis"],
+    light: ["Weighing options", "Comparing prices", "Determining the value of one option over another", "Juggling resources to make ends meet", "Making difficult choices based on what's best for your body or your bankbook", "Looking at the bottom line", "Asking for a second opinion on health issues"],
+    shadow: ["Engaging in endless price comparison", "Putting off a buying decision for fear of finding a slightly better value later on", "Buying something without regard for value", "Breaking your budget with unnecessary expenses", "Engaging in behavior with no regard for how your body or bankbook will be impacted"],
+    archetype: "",
+    hebrew: "",
+    numerology: "2 (The Other: duality, division, debate)",
+    element: "",
+    mythic: "",
+    questions: ["What values govern my decisions?", "How willing am I to sacrifice a little pleasure now in order to have more pleasure later on?", "Given my current situation, which course of action will give me more of what I really need?"],
+  },
+  403: {
+    fortune: ["A high-dollar contract is in your future", "If you work hard, you'll succeed"],
+    keywords: ["expression", "production", "work", "contribution"],
+    light: ["Finishing a project", "Setting and meeting standards", "Performing according to specifications", "Making something others value", "Creating something new", "Doing your part in a group project", "Delivering exactly what others have asked for"],
+    shadow: ["Pandering to the tastes of others", "Failing to deliver what you've promised", "Not delivering your best work unless closely supervised", "Ignoring or breaking agreements with those who have invested in you", "Refusing to do your part", "Failing to abide by a clearly-outlined agreement with yourself or others"],
+    archetype: "",
+    hebrew: "",
+    numerology: "3 (The Result: expression, productivity, output)",
+    element: "",
+    mythic: "",
+    questions: ["How can I get more done?", "What's expected of me? How large a role do I play in controlling those expectations?", "What's been agreed to? How well has that agreement been followed?"],
+  },
+  404: {
+    fortune: ["A rainy day is coming—it's time to save"],
+    keywords: ["protection", "conservation", "preservation", "safety"],
+    light: ["Saving for a rainy day", "Fasting as part of a spiritual practice", "Dieting in an effort to improve your body", "Abstaining from sex as a way of honoring a spiritual tradition or personal promise", "Being financially conservative", "Establishing a trust fund", "Opening a savings account"],
+    shadow: ["Being stingy", "Refusing to spend money that needs to be spent", "Withholding sex from your partner", "Taking care of your own needs exclusively, without regard for the needs of others", "Spending a dollar to save a penny", "Failing to be a good manager of the blessings you've been given"],
+    archetype: "",
+    hebrew: "",
+    numerology: "4 (The Status Quo: stability, equality, persistence)",
+    element: "",
+    mythic: "",
+    questions: ["What factors determine how conservative or generous you are?", "What kinds of things must be preserved at all costs?", "When is greediness or stinginess a good trait to have? When might generosity work against you?"],
+  },
+  405: {
+    fortune: ["Finances are getting tighter", "Prepare for a setback"],
+    keywords: ["poverty", "destitution", "need", "crisis"],
+    light: ["Recognizing your needs and taking action to fulfill them", "Doing as much as you can do with what little you have", "Admitting you need help", "Embracing the aid that comes your way", "Focusing on what you have versus what you don't", "Looking for the light at the end of the tunnel"],
+    shadow: ["Exaggerating your financial or physical needs", "Adopting a poverty mentality", "Refusing to support yourself", "Refusing offers of support", "Playing the martyr", "Turning down opportunities to improve your health or finances", "Wallowing in misery"],
+    archetype: "",
+    hebrew: "",
+    numerology: "5 (The Catalyst: instability, resistance, confrontation)",
+    element: "",
+    mythic: "",
+    questions: ["What critical resources do I lack?", "What people or groups would come to my aid if I asked?", "How might an impoverished spirit be impacting my physical or financial condition?"],
+  },
+  406: {
+    fortune: ["When you need help, ask for it", "Remember, though: what you receive may be limited by what you've given to others in the past"],
+    keywords: ["charity", "fairness", "cooperation", "sharing"],
+    light: ["Giving time, money, or effort to a charity", "Taking part in a group effort", "Lending your resources to others without expecting anything in return", "Making sure everyone is treated equally", "Working together toward a common goal", "Redistributing wealth, time, or attention", "Tithing", "Sharing credit for your success"],
+    shadow: ["Making a loan as a means of gaining control over someone", "Using charitable acts to draw attention to yourself", "Dividing work or resources unfairly", "Failing to do your part in a group effort", "Ignoring obligations and commitments"],
+    archetype: "",
+    hebrew: "",
+    numerology: "6 (The Adjustment: cooperation, collaboration, interaction)",
+    element: "",
+    mythic: "",
+    questions: ["How do I feel about charity? About giving it? About receiving it?", "How can I know if I'm treating others fairly?", "What could I give that no one else can?"],
+  },
+  407: {
+    fortune: ["Things won't work out as expected", "Pick up the pieces and prepare to move on"],
+    keywords: ["assessment", "evaluation", "re-evaluation", "reflection"],
+    light: ["Measuring progress toward your goal", "Looking at results with an eye toward improving performance", "Asking, \"How happy am I?\"", "Coming up with ideas for improving your health or prosperity", "Deciding it's time for a change", "Expressing an honest opinion"],
+    shadow: ["Becoming distracted by melancholy thoughts", "Longing for \"the good old days\"", "Beating yourself up over lost opportunities", "Judging your own work harshly", "Holding others to inappropriate standards", "Refusing to take part in a project, then whining about the quality of the outcome"],
+    archetype: "",
+    hebrew: "",
+    numerology: "7 (The Motive: imagination, inner work, psychology)",
+    element: "",
+    mythic: "",
+    questions: ["To what extent have I fulfilled my own expectations?", "What are the terms of success?", "How can I be happier with the progress I've made?"],
+  },
+  408: {
+    fortune: ["Stop over-analyzing, researching, and outlining", "Buckle down and get the work done"],
+    keywords: ["effort", "work diligence", "skill"],
+    light: ["Doing your best", "Bringing enthusiasm and zeal to your work", "Making an effort to be the best you can be", "Finding the work that is right for you", "Taking care of the small details", "Becoming a finely skilled craftsperson", "Building something with your hands", "Making a handmade gift"],
+    shadow: ["Working yourself to death", "Doing a half-hearted or sloppy job", "Continuing in a job you hate", "Buying thoughtless gifts", "Producing work with shoddy craftsmanship", "Rushing through your work", "Rejecting opportunities to learn more about your craft"],
+    archetype: "",
+    hebrew: "",
+    numerology: "8 (The Action: movement, outer work, swiftness)",
+    element: "",
+    mythic: "",
+    questions: ["How long has it been since you were \"lost in your work?\"", "How can you improve your level of dedication and focus?", "What work do you do best? What about that work appeals to you?"],
+  },
+  409: {
+    fortune: ["Until you appreciate what you have, you won't have any luck getting more"],
+    keywords: ["training", "discipline", "confidence", "enough"],
+    light: ["Investing time in learning or teaching a difficult task", "Restraining yourself from physical or financial extremes", "Making sacrifices as a way of achieving larger goals", "Breaking a complex task down into simple steps", "Wanting what you have", "Knowing the difference between needs and wants"],
+    shadow: ["Being assigned to a task without being trained to perform it", "Pursuing a position for which you are not qualified", "Disregarding requirements", "Refusing to dedicate adequate time or attention when learning about something or someone new", "Always craving more"],
+    archetype: "",
+    hebrew: "",
+    numerology: "9 (The Completion: fullness, readiness, ripeness)",
+    element: "",
+    mythic: "",
+    questions: ["If you could not have what you want, how would you make do?", "Could you make a complex task easier by breaking it down into smaller steps?", "How patient are you during the learning process? With yourself? With others?"],
+  },
+  410: {
+    fortune: ["Big money is in the near future", "Expect a powerful blessing to come your way"],
+    keywords: ["wealth", "abundance", "acquisition", "greed"],
+    light: ["Celebrating your physical and financial blessings", "Realizing how lucky or how blessed you are", "Being satisfied with your physical and financial achievements", "Taking best advantage of \"times of plenty\"", "Enjoying a feast", "Showering friends or family with gifts"],
+    shadow: ["Spending all of your money on extravagant gifts and possessions", "Trying too hard to impress others with your wealth or physique", "Giving an inappropriately expensive gift as a means of currying favor", "Obsessing on matters of weight, health, or finance", "Always asking, \"What's in it for me?\""],
+    archetype: "",
+    hebrew: "",
+    numerology: "10 (The End: finality, completion, exhaustion)",
+    element: "",
+    mythic: "",
+    questions: ["How much stuff do I really need?", "How do I feel about wealth and abundance? How do I define these terms?", "How might shedding some possessions open room for growth?"],
+  },
+  411: {
+    fortune: ["This card represents a young man or woman with an earthy, practical demeanor, likely born an Aries, Taurus, or Gemini, who playfully encourages you to take financial or sexual risks"],
+    keywords: ["practicality", "prosperity", "learning", "growth", "adolescence"],
+    light: ["Learning the value of a dollar", "Starting a savings plan", "Taking the first steps toward getting out of debt", "Learning new physical tasks", "Discovering your sexuality", "Launching a diet, a weight-lifting program, or a health-related effort", "Learning by doing"],
+    shadow: ["Trying to appear healthier or wealthier than you really are", "Spending money carelessly", "Living strictly for today, with no thought of tomorrow", "Possessing immature attitudes toward sex and sexuality", "Using wealth or beauty as an excuse for not having to learn and grow"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Earth of Earth.",
+    mythic: "",
+    questions: ["How can you get more financial or sexual experience without risking your livelihood or health?", "How might hands-on learning play a role in your situation?", "What's the most practical choice you could make?"],
+  },
+  412: {
+    fortune: ["A stingy person may chide you for spending money", "Be prepared to defend an economic or sexual decision"],
+    keywords: ["caution", "focus", "realism", "invention"],
+    light: ["Spending money wisely", "Saving for a rainy day", "Paying close attention to physical or financial details", "Knowing where every dollar goes", "Having safe sex", "Preferring facts to \"good feelings\"", "Finding creative ways to \"make do\" with resources on hand", "Completing a new invention"],
+    shadow: ["Throwing caution to the four winds", "Spending without regard for consequence", "Spending on luxury when necessities are lacking", "Escaping stress by spending money", "Obsessing on tiny physical or financial details", "Perpetually chasing after some new bauble", "Copying another's work and claiming it as your own"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Air of Earth.",
+    mythic: "",
+    questions: ["What's the difference between caution and fear?", "How can I evaluate the practicality of my own ideas and methods?", "How realistic are my goals?"],
+  },
+  413: {
+    fortune: ["This card represents a woman with an expansive, sensual nature, likely born between December 13th and 31st, who uses sensual appeal and the promise of reward to sway others to her point of view"],
+    keywords: ["luxury", "comfort", "resourcefulness", "generosity", "prosperity"],
+    light: ["Appreciating fine food, fine wine, beautiful art, beautiful bodies, or any of the better things in life", "Reveling in healthy sexuality", "Treating yourself", "Splurging on the occasional \"nice to have\" item", "Rewarding someone with compensation above and beyond expectations", "Having it all"],
+    shadow: ["Indulging in gluttony or greediness", "Becoming insatiable", "Blunting the impact of treats by indulging in them too often", "Providing physical comfort without providing for emotional needs", "Allowing a feeling of entitlement to distort your gratitude for what you're given"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Water of Earth.",
+    mythic: "",
+    questions: ["How do I define luxury?", "To what extent am I capable of reveling in sensual pleasure?", "What would I have to give up in order to \"have it all?\""],
+  },
+  414: {
+    fortune: ["This card represents an older man with a financially, socially, and politically conservative spirit, likely born between August 12th and September 11th, who is known for putting his money where his mouth is"],
+    keywords: ["stability", "dependability", "confidence", "intervention"],
+    light: ["Becoming debt-free", "Having more than enough to get by", "Making contributions to a savings plan", "Taking a new job with an eye toward advancing your career", "Buying life or health insurance", "Being confident in the bedroom", "Taking on the role of enforcer when called upon to do so"],
+    shadow: ["Becoming so conservative you resist all change on principle alone", "Ignoring innovations in the name of preserving tradition", "Being smug or cocky", "Becoming ruthlessly dedicated to profit or pleasure", "Being sexually selfish", "Bossing others around, especially when you're not empowered to do so"],
+    archetype: "",
+    hebrew: "",
+    numerology: "",
+    element: "Fire of Earth.",
+    mythic: "",
+    questions: ["How can you handle expenses with greater confidence and maturity?", "How dependable are you? How dependable would others say you are?", "To what extent is a conservative viewpoint valuable? At what point does it become more of a burden than a blessing?"],
+  },
+};
+
+
+// ===== 卡牌视觉数据（韦特系意象） =====
+// 特定卡牌的精细化 SVG 视觉定义，可逐步扩充
+const CARD_VISUALS = {
+  0: { // 愚者 — The Fool
+    // 参考 JSON 数据：黄色天空、悬崖、青年、白狗、白玫瑰、行囊
+    render: (n, rev) => `
+      <g>
+        <!-- 天空渐变背景 -->
+        <defs>
+          <linearGradient id="sky_0" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#FFD700"/>
+            <stop offset="40%" style="stop-color:#FFE44D"/>
+            <stop offset="80%" style="stop-color:#FFF5CC"/>
+            <stop offset="100%" style="stop-color:#FFF8E7"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#sky_0)"/>
+
+        <!-- 白色太阳（右上角） -->
+        <circle cx="138" cy="42" r="18" fill="white" opacity="0.9"/>
+        <circle cx="138" cy="42" r="22" fill="white" opacity="0.15"/>
+        <circle cx="138" cy="42" r="27" fill="white" opacity="0.08"/>
+
+        <!-- 远山（雪峰） -->
+        <polygon points="0,150 25,85 55,140 75,78 100,130 130,75 170,120 170,160 0,160" fill="#B0C4DE" opacity="0.6"/>
+        <polygon points="0,145 25,85 55,140 75,78 100,130 130,75 170,120 170,155 0,155" fill="#D0DCE8" opacity="0.4"/>
+        <!-- 雪顶 -->
+        <polygon points="25,85 20,92 30,90" fill="white" opacity="0.7"/>
+        <polygon points="75,78 68,88 82,85" fill="white" opacity="0.7"/>
+        <polygon points="130,75 123,84 137,82" fill="white" opacity="0.7"/>
+
+        <!-- 悬崖 -->
+        <polygon points="0,170 170,170 170,195 120,190 100,210 80,195 55,205 30,190 0,195" fill="#8B7355" opacity="0.7"/>
+        <polygon points="0,170 170,170 170,190 120,185 100,200 80,185 55,195 30,185 0,190" fill="#A0896A" opacity="0.5"/>
+        <!-- 悬崖边缘线 -->
+        <line x1="5" y1="172" x2="165" y2="172" stroke="#6B5B3E" stroke-width="0.5" opacity="0.3"/>
+
+        <!-- 青年身体 -->
+        <g transform="translate(82, 105)">
+          <!-- 躯干 -->
+          <path d="M-6,-8 Q-8,8 -6,22 L6,22 Q8,8 6,-8 Z" fill="#E8D5B7"/>
+          <!-- 右腿（前迈） -->
+          <path d="M-2,22 L-10,52 L-6,54 L-1,24" fill="#4A4A6A"/>
+          <!-- 左腿（后） -->
+          <path d="M2,22 L8,48 L12,46 L5,22" fill="#4A4A6A"/>
+          <!-- 右脚 -->
+          <ellipse cx="-8" cy="54" rx="4" ry="1.5" fill="#3A3A5A"/>
+          <!-- 左脚 -->
+          <ellipse cx="10" cy="48" rx="4" ry="1.5" fill="#3A3A5A"/>
+          <!-- 上衣（花纹） -->
+          <path d="M-6,-8 Q-8,8 -6,22 L6,22 Q8,8 6,-8 Z" fill="none" stroke="#D4A574" stroke-width="0.5"/>
+          <!-- 花朵装饰 -->
+          ${[0,1,2].map(i => {
+            const yy = -2 + i * 7;
+            return `<circle cx="${i%2===0?-4:4}" cy="${yy}" r="1.5" fill="#FF6B8A" opacity="0.6"/>`;
+          }).join('')}
+          <!-- 头部 -->
+          <circle cx="0" cy="-14" r="9" fill="#E8D5B7"/>
+          <!-- 头发 -->
+          <path d="M-8,-16 Q-9,-25 0,-26 Q9,-25 8,-16" fill="#4A2F1B"/>
+          <!-- 面部特征 -->
+          <circle cx="-3" cy="-15" r="1" fill="#2A1F0D"/>
+          <circle cx="3" cy="-15" r="1" fill="#2A1F0D"/>
+          <path d="M-2,-12 Q0,-10 2,-12" fill="none" stroke="#2A1F0D" stroke-width="0.4"/>
+          <!-- 红色羽毛（帽子） -->
+          <path d="M5,-23 Q12,-30 8,-18" fill="#DC143C" opacity="0.8"/>
+          <path d="M5,-23 L12,-30" stroke="#DC143C" stroke-width="0.3"/>
+
+          <!-- 右上肩背行囊 -->
+          <g transform="translate(10, -5)">
+            <rect x="0" y="-2" width="8" height="10" fill="#6B4226" rx="1.5" opacity="0.8"/>
+            <line x1="4" y1="-2" x2="4" y2="-6" stroke="#6B4226" stroke-width="0.5"/>
+            <rect x="-2" y="-1" width="12" height="3" fill="none" stroke="#8B5E3C" stroke-width="0.3" rx="0.5"/>
+          </g>
+
+          <!-- 左手白玫瑰 -->
+          <g transform="translate(-8, -8)">
+            <circle cx="0" cy="0" r="3" fill="white" opacity="0.9"/>
+            <circle cx="0" cy="0" r="2" fill="#FFF8EE" opacity="0.5"/>
+            <line x1="0" y1="3" x2="0" y2="8" stroke="#4A7A3A" stroke-width="0.4"/>
+            <ellipse cx="-2" cy="5" rx="1.5" ry="0.5" fill="#4A7A3A" opacity="0.6" transform="rotate(-30,-2,5)"/>
+          </g>
+        </g>
+
+        <!-- 白狗（跃动在脚下） -->
+        <g transform="translate(60, 165)">
+          <ellipse cx="0" cy="0" rx="6" ry="3" fill="white" opacity="0.9"/>
+          <circle cx="-4" cy="-3" r="2.5" fill="white" opacity="0.9"/>
+          <circle cx="-5" cy="-3.5" r="0.5" fill="#333"/>
+          <ellipse cx="-6" cy="-3" rx="1" ry="0.3" fill="#333" opacity="0.3"/>
+          <!-- 尾巴 -->
+          <path d="M5,0 Q8,-4 7,-1" fill="none" stroke="white" stroke-width="0.8"/>
+          <!-- 前腿跃起 -->
+          <line x1="-2" y1="3" x2="-4" y2="7" stroke="white" stroke-width="0.8"/>
+          <line x1="1" y1="3" x2="3" y2="7" stroke="white" stroke-width="0.8"/>
+        </g>
+
+        <!-- 白色边框（右上标注数字） -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：0 号标记 -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">0</text>
+
+        <!-- 下：THE FOOL -->
+        <rect x="25" y="248" width="120" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="7" font-family="serif" font-weight="bold" letter-spacing="0.2em">THE FOOL</text>
+
+        <!-- 逆位覆层 -->
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  },
+
+  1: { // 魔法师 — The Magician
+    render: (n, rev) => `
+      <g>
+        <defs>
+          <linearGradient id="bg_1" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#FFD700"/>
+            <stop offset="50%" style="stop-color:#FFE44D"/>
+            <stop offset="100%" style="stop-color:#FFCC00"/>
+          </linearGradient>
+          <linearGradient id="clk_1" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#CC0000"/>
+            <stop offset="100%" style="stop-color:#8B0000"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#bg_1)"/>
+
+        <!-- 花拱（上方的红玫瑰与白百合） -->
+        <path d="M20,30 Q40,10 60,22 Q80,8 105,18 Q125,6 145,20 Q155,12 160,25" fill="none" stroke="#2D5A1E" stroke-width="2"/>
+        <!-- 左侧红玫瑰 -->
+        <circle cx="35" cy="22" r="5" fill="#DC143C" opacity="0.85"/>
+        <circle cx="33" cy="18" r="4" fill="#FF6B6B" opacity="0.7"/>
+        <circle cx="38" cy="16" r="4" fill="#DC143C" opacity="0.6"/>
+        <circle cx="55" cy="20" r="4" fill="#DC143C" opacity="0.8"/>
+        <circle cx="65" cy="17" r="5" fill="#FF6B6B" opacity="0.7"/>
+        <circle cx="62" cy="14" r="3" fill="#DC143C" opacity="0.5"/>
+        <!-- 右侧白百合 -->
+        <ellipse cx="120" cy="16" rx="2" ry="4" fill="white" opacity="0.9" transform="rotate(-20,120,16)"/>
+        <ellipse cx="122" cy="14" rx="2" ry="4" fill="white" opacity="0.8" transform="rotate(10,122,14)"/>
+        <ellipse cx="118" cy="14" rx="2" ry="4" fill="white" opacity="0.8" transform="rotate(-40,118,14)"/>
+        <ellipse cx="137" cy="18" rx="2" ry="4" fill="white" opacity="0.9" transform="rotate(-15,137,18)"/>
+        <ellipse cx="139" cy="16" rx="2" ry="4" fill="white" opacity="0.8" transform="rotate(15,139,16)"/>
+        <ellipse cx="135" cy="16" rx="2" ry="4" fill="white" opacity="0.8" transform="rotate(-35,135,16)"/>
+        <circle cx="148" cy="22" r="3" fill="#FFD700" opacity="0.7"/>
+        <!-- 绿叶 -->
+        ${[45,75,110,130].map(x => `<ellipse cx="${x}" cy="28" rx="3" ry="1.5" fill="#2D5A1E" opacity="0.6" transform="rotate(${x*0.3-20},${x},28)"/>`).join('')}
+
+        <!-- 桌子 -->
+        <rect x="52" y="160" width="66" height="8" fill="#5C4033" rx="1"/>
+        <rect x="50" y="160" width="70" height="2" fill="#4A3020"/>
+        <!-- 桌腿 -->
+        <rect x="55" y="168" width="3" height="30" fill="#4A3020"/>
+        <rect x="112" y="168" width="3" height="30" fill="#4A3020"/>
+
+        <!-- 桌上四道具：权杖、圣杯、宝剑、星币 -->
+        <!-- 权杖（左一） -->
+        <rect x="56" y="140" width="2" height="22" fill="#8B5E3C" transform="rotate(-10,57,150)"/>
+        <circle cx="56" cy="140" r="1.5" fill="#FF8C00"/>
+        <!-- 圣杯（左二） -->
+        <path d="M66,162 L66,150 Q66,147 69,147 L73,147 Q76,147 76,150 L76,162" fill="none" stroke="#C0C0C0" stroke-width="0.8"/>
+        <path d="M64,150 L78,150" stroke="#C0C0C0" stroke-width="0.6"/>
+        <path d="M67,162 L75,162" stroke="#C0C0C0" stroke-width="0.6"/>
+        <!-- 宝剑（右二） -->
+        <line x1="95" y1="138" x2="93" y2="162" stroke="#C0C0C0" stroke-width="0.8"/>
+        <path d="M95,138 L93,142 L91,140 Z" fill="#C0C0C0"/>
+        <rect x="92" y="148" width="2" height="3" fill="#8B4513"/>
+        <!-- 星币（右一） -->
+        <circle cx="112" cy="153" r="4" fill="#DAA520" stroke="#B8860B" stroke-width="0.5"/>
+        <circle cx="112" cy="153" r="2" fill="#B8860B"/>
+        <line x1="112" y1="149" x2="112" y2="157" stroke="#8B6914" stroke-width="0.3"/>
+        <line x1="108" y1="153" x2="116" y2="153" stroke="#8B6914" stroke-width="0.3"/>
+
+        <!-- 魔法师身体 -->
+        <g transform="translate(85, 75)">
+          <!-- 红色披风 -->
+          <path d="M-12,-20 Q-18,0 -16,50 L-10,55 Q-8,20 -8,-15 Z" fill="url(#clk_1)" opacity="0.8"/>
+          <path d="M12,-20 Q18,0 16,50 L10,55 Q8,20 8,-15 Z" fill="url(#clk_1)" opacity="0.8"/>
+          <!-- 白色内袍 -->
+          <path d="M-8,-18 Q-6,15 -5,50 L5,50 Q6,15 8,-18 Z" fill="white"/>
+          <!-- 头部 -->
+          <circle cx="0" cy="-25" r="10" fill="#F5D6B8"/>
+          <!-- 头发 -->
+          <path d="M-9,-28 Q-10,-38 0,-38 Q10,-38 9,-28" fill="#1A0D00"/>
+          <!-- 面部 -->
+          <circle cx="-3" cy="-26" r="1" fill="#333"/>
+          <circle cx="3" cy="-26" r="1" fill="#333"/>
+          <path d="M-2,-23 Q0,-21 2,-23" fill="none" stroke="#333" stroke-width="0.4"/>
+          <!-- 胡须 -->
+          <path d="M-3,-22 Q-5,-19 -3,-18 Q0,-17 3,-18 Q5,-19 3,-22" fill="#1A0D00" opacity="0.6"/>
+
+          <!-- 右手举杖向上 -->
+          <line x1="8" y1="-15" x2="25" y2="-70" stroke="#F5D6B8" stroke-width="1.5"/>
+          <line x1="25" y1="-70" x2="25" y2="-80" stroke="#8B5E3C" stroke-width="1.2"/>
+          <circle cx="25" cy="-80" r="1.5" fill="white"/>
+          <!-- 左手向下 -->
+          <line x1="-8" y1="-15" x2="-22" y2="15" stroke="#F5D6B8" stroke-width="1.5"/>
+          <circle cx="-22" cy="15" r="1.5" fill="#F5D6B8"/>
+
+          <!-- 头顶无限符号（lemniscate） -->
+          <path d="M-8,-42 Q-5,-48 0,-45 Q5,-42 8,-48 Q10,-42 8,-38" fill="none" stroke="#DAA520" stroke-width="1"/>
+          <path d="M-8,-42 Q-5,-38 0,-41 Q5,-44 8,-38" fill="none" stroke="#DAA520" stroke-width="1"/>
+
+          <!-- 腰带乌洛波洛斯（蛇咬尾） -->
+          <ellipse cx="0" cy="0" rx="9" ry="2.5" fill="none" stroke="#2D5A1E" stroke-width="1"/>
+          <circle cx="9" cy="0" r="1.5" fill="#2D5A1E"/>
+          <circle cx="8.5" cy="-0.5" r="0.5" fill="#FF4444"/>
+          <!-- 蛇鳞纹 -->
+          ${[-6,-3,0,3,6].map(x => `<line x1="${x}" y1="-1" x2="${x+1}" y2="1" stroke="#3A7A2E" stroke-width="0.2" opacity="0.4"/>`).join('')}
+        </g>
+
+        <!-- 前景鲜花 -->
+        <g transform="translate(25, 205)">
+          <path d="M0,0 Q2,-8 -1,-15" fill="none" stroke="#2D5A1E" stroke-width="0.5"/>
+          <circle cx="-1" cy="-16" r="2" fill="#FF6B6B" opacity="0.8"/>
+          <circle cx="-1" cy="-16" r="1" fill="#FFD700" opacity="0.6"/>
+        </g>
+        <g transform="translate(140, 210)">
+          <path d="M0,0 Q-2,-8 1,-12" fill="none" stroke="#2D5A1E" stroke-width="0.5"/>
+          <ellipse cx="1" cy="-13" rx="1.5" ry="2" fill="white" opacity="0.8"/>
+        </g>
+
+        <!-- 白色边框 -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：I -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">I</text>
+
+        <!-- 下：THE MAGICIAN -->
+        <rect x="25" y="248" width="120" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="6.5" font-family="serif" font-weight="bold" letter-spacing="0.2em">THE MAGICIAN</text>
+
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  },
+
+  2: { // 女祭司 — The High Priestess
+    render: (n, rev) => `
+      <g>
+        <defs>
+          <linearGradient id="bg_2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1C3F6E"/>
+            <stop offset="50%" style="stop-color:#2A5A8A"/>
+            <stop offset="100%" style="stop-color:#1A2A4A"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#bg_2)"/>
+
+        <!-- 帷幔背景（石榴图案） -->
+        <rect x="40" y="40" width="90" height="200" fill="#4A7A9A" opacity="0.4"/>
+        <!-- 石榴图案 -->
+        ${[50,70,90,110,130].map((y,i) => {
+          const xs = [60,80,100,120];
+          return xs.map(x => {
+            if((x+y)%30 < 5) return '';
+            return `<circle cx="${x}" cy="${y}" r="2.5" fill="#8B2252" opacity="0.5"/><circle cx="${x}" cy="${y}" r="1" fill="#CD3278" opacity="0.4"/>`;
+          }).join('');
+        }).join('')}
+
+        <!-- 左柱（黑色 B） -->
+        <rect x="45" y="55" width="8" height="185" fill="#1A1A1A"/>
+        <rect x="45" y="55" width="8" height="3" fill="#333"/>
+        <rect x="45" y="237" width="8" height="3" fill="#333"/>
+        <text x="49" y="235" text-anchor="middle" fill="#666" font-size="5" font-family="serif" font-weight="bold">B</text>
+
+        <!-- 右柱（白色 J） -->
+        <rect x="117" y="55" width="8" height="185" fill="#E8E0D0"/>
+        <rect x="117" y="55" width="8" height="3" fill="#CCC"/>
+        <rect x="117" y="237" width="8" height="3" fill="#CCC"/>
+        <text x="121" y="235" text-anchor="middle" fill="#999" font-size="5" font-family="serif" font-weight="bold">J</text>
+
+        <!-- 女祭司身体 -->
+        <g transform="translate(85, 95)">
+          <!-- 蓝色/白色长袍（身体） -->
+          <path d="M-12,-20 L-18,100 L18,100 L12,-20 Z" fill="#4A7AD8" opacity="0.8"/>
+          <!-- 外罩白袍 -->
+          <path d="M-10,-15 L-15,90 L15,90 L10,-15 Z" fill="white" opacity="0.7"/>
+          <!-- 衣襟装饰 -->
+          <path d="M-8,-15 L-6,-15 L-10,90 L-12,90" fill="#3A6AB8" opacity="0.4"/>
+          <path d="M8,-15 L6,-15 L10,90 L12,90" fill="#3A6AB8" opacity="0.4"/>
+
+          <!-- 卷轴 TORA（腿上） -->
+          <g transform="translate(-6, 55)">
+            <rect x="0" y="0" width="18" height="10" fill="#F5E6C8" rx="1"/>
+            <rect x="0" y="3" width="18" height="4" fill="#E8D4A8"/>
+            <text x="9" y="8" text-anchor="middle" fill="#333" font-size="2.5" font-family="serif" font-weight="bold">TORA</text>
+            <!-- 半隐藏效果 -->
+            <rect x="12" y="0" width="6" height="10" fill="#4A7AD8" opacity="0.6"/>
+          </g>
+
+          <!-- 头部 -->
+          <circle cx="0" cy="-30" r="11" fill="#F5D6B8"/>
+          <!-- 面纱 -->
+          <path d="M-11,-30 Q-12,-20 -10,-15 L-12,-35" fill="none" stroke="#4A7AD8" stroke-width="0.5" opacity="0.5"/>
+          <path d="M11,-30 Q12,-20 10,-15 L12,-35" fill="none" stroke="#4A7AD8" stroke-width="0.5" opacity="0.5"/>
+          <!-- 头发 -->
+          <path d="M-10,-33 Q-11,-45 0,-44 Q11,-45 10,-33" fill="#1A0D00"/>
+          <path d="M-10,-33 Q-12,-30 -10,-25" fill="none" stroke="#1A0D00" stroke-width="0.5"/>
+          <path d="M10,-33 Q12,-30 10,-25" fill="none" stroke="#1A0D00" stroke-width="0.5"/>
+
+          <!-- 三重月亮冠冕 -->
+          <circle cx="-4" cy="-41" r="3.5" fill="none" stroke="#DAA520" stroke-width="0.8"/>
+          <circle cx="0" cy="-43" r="3.5" fill="none" stroke="#DAA520" stroke-width="0.8"/>
+          <circle cx="4" cy="-41" r="3.5" fill="none" stroke="#DAA520" stroke-width="0.8"/>
+          <!-- 冠冕顶饰 -->
+          <circle cx="0" cy="-46" r="1" fill="#DAA520"/>
+
+          <!-- 面部 -->
+          <circle cx="-3" cy="-31" r="1" fill="#333"/>
+          <circle cx="3" cy="-31" r="1" fill="#333"/>
+          <path d="M-2,-28 Q0,-26 2,-28" fill="none" stroke="#333" stroke-width="0.4"/>
+
+          <!-- 双手交叠（胸前） -->
+          <ellipse cx="-5" cy="-5" rx="3" ry="4" fill="#F5D6B8" opacity="0.7"/>
+          <ellipse cx="5" cy="-5" rx="3" ry="4" fill="#F5D6B8" opacity="0.7"/>
+
+          <!-- 胸前十字架 -->
+          <line x1="-3" y1="10" x2="3" y2="10" stroke="#DAA520" stroke-width="0.6"/>
+          <line x1="0" y1="7" x2="0" y2="13" stroke="#DAA520" stroke-width="0.6"/>
+        </g>
+
+        <!-- 月牙（脚下） -->
+        <path d="M65,220 Q85,210 105,220 Q85,215 65,220 Z" fill="#DAA520" opacity="0.4"/>
+
+        <!-- 白色边框 -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：II -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">II</text>
+
+        <!-- 下：THE HIGH PRIESTESS -->
+        <rect x="15" y="248" width="140" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="6" font-family="serif" font-weight="bold" letter-spacing="0.15em">THE HIGH PRIESTESS</text>
+
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  },
+
+  100: { // 权杖王牌 — Ace of Wands
+    render: (n, rev) => `
+      <g>
+        <defs>
+          <linearGradient id="sky_100" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#87CEEB"/>
+            <stop offset="60%" style="stop-color:#B0E0E6"/>
+            <stop offset="100%" style="stop-color:#D4ECF0"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#sky_100)"/>
+
+        <!-- 远景丘陵 -->
+        <path d="M0,175 Q20,160 40,168 Q60,150 85,162 Q110,148 130,160 Q150,150 170,165 L170,195 L0,195 Z" fill="#6B8E23" opacity="0.5"/>
+        <path d="M0,185 Q30,175 60,180 Q90,170 120,178 Q145,168 170,178 L170,200 L0,200 Z" fill="#556B2F" opacity="0.4"/>
+
+        <!-- 树木 -->
+        ${[[28,160],[70,155],[122,158],[155,153]].map(([x,y]) => {
+          return `<rect x="${x-1}" y="${y-8}" width="2" height="8" fill="#5C4033" rx="0.5"/>
+            <circle cx="${x}" cy="${y-10}" r="5" fill="#3A7A2E" opacity="0.7"/>`;
+        }).join('')}
+
+        <!-- 远处城堡 -->
+        <g transform="translate(120, 145)">
+          <rect x="0" y="-5" width="12" height="12" fill="#A0A0A0" opacity="0.6"/>
+          <rect x="2" y="-8" width="8" height="5" fill="#909090" opacity="0.6"/>
+          <rect x="4" y="-10" width="4" height="4" fill="#808080" opacity="0.6"/>
+          <rect x="2" y="4" width="3" height="3" fill="#808080"/>
+          <rect x="7" y="4" width="3" height="3" fill="#808080"/>
+        </g>
+
+        <!-- 云中右手（左侧伸出） -->
+        <g transform="translate(15, 55)">
+          <!-- 云朵 -->
+          <ellipse cx="5" cy="20" rx="18" ry="8" fill="white" opacity="0.9"/>
+          <ellipse cx="12" cy="16" rx="14" ry="10" fill="white" opacity="0.85"/>
+          <ellipse cx="0" cy="16" rx="12" ry="9" fill="white" opacity="0.85"/>
+          <ellipse cx="8" cy="24" rx="15" ry="7" fill="white" opacity="0.8"/>
+
+          <!-- 手掌 -->
+          <ellipse cx="25" cy="12" rx="6" ry="7" fill="#F5D6B8"/>
+          <!-- 手指握杖 -->
+          <path d="M23,6 L30,4 L32,8 L29,11" fill="#F5D6B8" stroke="#E0C0A0" stroke-width="0.3"/>
+          <path d="M22,7 L28,5 L30,9 L27,12" fill="#F5D6B8" stroke="#E0C0A0" stroke-width="0.3"/>
+          <path d="M24,15 L31,13 L33,9 L30,7" fill="#F5D6B8" stroke="#E0C0A0" stroke-width="0.3"/>
+          <path d="M25,17 L32,16 L34,12 L31,10" fill="#F5D6B8" stroke="#E0C0A0" stroke-width="0.3"/>
+          <!-- 拇指 -->
+          <path d="M22,8 L19,4 L22,3 L27,5" fill="#F5D6B8" stroke="#E0C0A0" stroke-width="0.3"/>
+
+          <!-- 权杖 -->
+          <line x1="26" y1="4" x2="45" y2="-75" stroke="#8B5E3C" stroke-width="3"/>
+          <line x1="26" y1="4" x2="45" y2="-75" stroke="#6B4226" stroke-width="1" opacity="0.5"/>
+
+          <!-- 权杖顶发芽 -->
+          <g transform="translate(45, -78)">
+            <line x1="0" y1="0" x2="-4" y2="-6" stroke="#3A7A2E" stroke-width="0.8"/>
+            <line x1="0" y1="0" x2="3" y2="-9" stroke="#3A7A2E" stroke-width="0.8"/>
+            <line x1="0" y1="0" x2="-7" y2="-3" stroke="#3A7A2E" stroke-width="0.8"/>
+            <ellipse cx="-4" cy="-7" rx="2.5" ry="1.5" fill="#4A9A3E" opacity="0.8" transform="rotate(-30,-4,-7)"/>
+            <ellipse cx="3" cy="-10" rx="2.5" ry="1.5" fill="#4A9A3E" opacity="0.8" transform="rotate(20,3,-10)"/>
+            <ellipse cx="-7" cy="-4" rx="2" ry="1.2" fill="#4A9A3E" opacity="0.7" transform="rotate(-60,-7,-4)"/>
+            <circle cx="0" cy="-1" r="1.5" fill="#FF6B6B" opacity="0.8"/>
+          </g>
+        </g>
+
+        <!-- 下落的 yod（火花形状） -->
+        ${[[68,26],[78,38],[62,44],[72,52],[83,34],[92,30]].map(([x,y],i) => {
+          const size = 1 + (i % 3) * 0.5;
+          return `<ellipse cx="${x}" cy="${y}" rx="${size}" ry="${size*1.5}" fill="#DAA520" opacity="${0.4 + (i%3)*0.15}" transform="rotate(${i*15},${x},${y})"/>`;
+        }).join('')}
+
+        <!-- 额外小火花 -->
+        ${[5,8].map(i => {
+          const angle = i * 27;
+          const r = 12 + i * 3;
+          const x = 72 + Math.cos(angle * Math.PI / 180) * r;
+          const y = 38 + Math.sin(angle * Math.PI / 180) * r;
+          return `<ellipse cx="${x}" cy="${y}" rx="0.8" ry="1.2" fill="#FFD700" opacity="0.5" transform="rotate(${angle},${x},${y})"/>`;
+        }).join('')}
+
+        <!-- 白色边框 -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：I -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">I</text>
+
+        <!-- 下：ACE of WANDS -->
+        <rect x="25" y="248" width="120" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="6.5" font-family="serif" font-weight="bold" letter-spacing="0.2em">ACE of WANDS</text>
+
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  },
+
+  303: { // 宝剑三 — Three of Swords
+    render: (n, rev) => `
+      <g>
+        <defs>
+          <linearGradient id="sky_303" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#666672"/>
+            <stop offset="50%" style="stop-color:#80808E"/>
+            <stop offset="100%" style="stop-color:#6A6A76"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#sky_303)"/>
+
+        <!-- 雨云 -->
+        <ellipse cx="50" cy="35" rx="40" ry="15" fill="#555566" opacity="0.6"/>
+        <ellipse cx="85" cy="30" rx="35" ry="12" fill="#4A4A5A" opacity="0.5"/>
+        <ellipse cx="120" cy="38" rx="38" ry="14" fill="#555566" opacity="0.6"/>
+        <ellipse cx="40" cy="28" rx="25" ry="10" fill="#4A4A5A" opacity="0.4"/>
+        <ellipse cx="135" cy="30" rx="28" ry="10" fill="#4A4A5A" opacity="0.4"/>
+        <ellipse cx="85" cy="25" rx="50" ry="10" fill="#555566" opacity="0.35"/>
+
+        <!-- 对角线雨线 -->
+        ${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => {
+          const x = 10 + i * 12 + (i % 3) * 3;
+          const y = 50 + i * 14;
+          const len = 8 + (i % 4) * 2;
+          return `<line x1="${x}" y1="${y}" x2="${x+5}" y2="${y+len}" stroke="#8888A0" stroke-width="0.4" opacity="${0.15 + (i%4)*0.07}"/>`;
+        }).join('')}
+        ${[0,1,2,3,4,5,6,7,8,9].map(i => {
+          const x = 140 - i * 9 - (i % 3) * 4;
+          const y = 55 + i * 16;
+          const len = 6 + (i % 3) * 3;
+          return `<line x1="${x}" y1="${y}" x2="${x+4}" y2="${y+len}" stroke="#8888A0" stroke-width="0.4" opacity="${0.1 + (i%3)*0.05}"/>`;
+        }).join('')}
+
+        <!-- 心脏 -->
+        <g transform="translate(85, 120)">
+          <!-- 心脏本体 -->
+          <path d="M0,-25 Q-30,-50 -30,-18 Q-30,10 0,35 Q0,35 0,35 Q0,35 0,35 Q30,10 30,-18 Q30,-50 0,-25 Z" fill="#DC143C"/>
+          <path d="M0,-25 Q-30,-50 -30,-18 Q-30,10 0,35 Q0,35 0,35 Q0,35 0,35 Q30,10 30,-18 Q30,-50 0,-25 Z" fill="none" stroke="#B01030" stroke-width="0.8"/>
+          <!-- 心脏高光 -->
+          <path d="M-20,-25 Q-15,-40 -8,-35 Q-2,-30 -5,-20" fill="none" stroke="#FF6B8A" stroke-width="1" opacity="0.4"/>
+          <ellipse cx="-12" cy="-28" rx="4" ry="2" fill="#FF8AA0" opacity="0.3" transform="rotate(-20,-12,-28)"/>
+        </g>
+
+        <!-- 三把剑 -->
+        <!-- 第一把剑（中间垂直） -->
+        <g transform="translate(85, 30)">
+          <rect x="-1" y="0" width="2" height="105" fill="#C0C0C0"/>
+          <path d="M-1,0 L-3,5 L-1,3 L1,5 Z" fill="#C0C0C0"/>
+          <!-- 剑柄 -->
+          <rect x="-2" y="105" width="4" height="3" fill="#8B4513"/>
+          <rect x="-1" y="108" width="2" height="8" fill="#A0522D"/>
+          <ellipse cx="0" cy="116" rx="3" ry="1.5" fill="#DAA520"/>
+          <!-- 剑刃高光 -->
+          <line x1="0" y1="3" x2="0" y2="103" stroke="#E8E8F0" stroke-width="0.3" opacity="0.5"/>
+        </g>
+
+        <!-- 第二把剑（左斜） -->
+        <g transform="translate(85, 132)">
+          <line x1="0" y1="-97" x2="-78" y2="45" stroke="#C0C0C0" stroke-width="1.8"/>
+          <!-- 剑尖 -->
+          <line x1="-78" y1="45" x2="-82" y2="40" stroke="#C0C0C0" stroke-width="1"/>
+          <line x1="-78" y1="45" x2="-76" y2="42" stroke="#C0C0C0" stroke-width="0.8"/>
+          <!-- 剑柄 -->
+          <line x1="0" y1="-97" x2="-3" y2="-102" stroke="#8B4513" stroke-width="2"/>
+          <line x1="-3" y1="-102" x2="-4" y2="-110" stroke="#A0522D" stroke-width="1.2"/>
+          <ellipse cx="-4" cy="-112" rx="3" ry="1.5" fill="#DAA520"/>
+        </g>
+
+        <!-- 第三把剑（右斜） -->
+        <g transform="translate(85, 132)">
+          <line x1="0" y1="-97" x2="78" y2="45" stroke="#C0C0C0" stroke-width="1.8"/>
+          <line x1="78" y1="45" x2="82" y2="40" stroke="#C0C0C0" stroke-width="1"/>
+          <line x1="78" y1="45" x2="76" y2="42" stroke="#C0C0C0" stroke-width="0.8"/>
+          <line x1="0" y1="-97" x2="3" y2="-102" stroke="#8B4513" stroke-width="2"/>
+          <line x1="3" y1="-102" x2="4" y2="-110" stroke="#A0522D" stroke-width="1.2"/>
+          <ellipse cx="4" cy="-112" rx="3" ry="1.5" fill="#DAA520"/>
+        </g>
+
+        <!-- 白色边框 -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：III -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">III</text>
+
+        <!-- 下：THREE of SWORDS -->
+        <rect x="25" y="248" width="120" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="6.5" font-family="serif" font-weight="bold" letter-spacing="0.2em">THREE of SWORDS</text>
+
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  },
+
+  410: { // 星币十 — Ten of Pentacles
+    render: (n, rev) => `
+      <g>
+        <defs>
+          <linearGradient id="sky_410" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#DAA520"/>
+            <stop offset="30%" style="stop-color:#E8C840"/>
+            <stop offset="70%" style="stop-color:#F5D880"/>
+            <stop offset="100%" style="stop-color:#C8A820"/>
+          </linearGradient>
+        </defs>
+        <rect width="170" height="280" fill="url(#sky_410)"/>
+
+        <!-- 石拱门（背景） -->
+        <path d="M85,40 Q140,40 155,100 L155,200 L15,200 L15,100 Q30,40 85,40 Z" fill="#8B8878" opacity="0.5"/>
+        <path d="M85,45 Q135,45 148,100 L148,200 L22,200 L22,100 Q35,45 85,45 Z" fill="#A09880" opacity="0.3"/>
+        <!-- 拱门装饰线 -->
+        <path d="M85,40 Q140,40 155,100" fill="none" stroke="#6B6858" stroke-width="0.8" opacity="0.5"/>
+        <path d="M85,42 Q138,42 152,100" fill="none" stroke="#6B6858" stroke-width="0.5" opacity="0.3"/>
+
+        <!-- 石柱 -->
+        <rect x="15" y="80" width="8" height="160" fill="#7B7868" opacity="0.6"/>
+        <rect x="147" y="80" width="8" height="160" fill="#7B7868" opacity="0.6"/>
+        <rect x="14" y="78" width="10" height="4" fill="#8B8878" opacity="0.6"/>
+        <rect x="146" y="78" width="10" height="4" fill="#8B8878" opacity="0.6"/>
+
+        <!-- 远景庭院建筑 -->
+        <rect x="60" y="80" width="50" height="30" fill="#B0A890" opacity="0.4"/>
+        <rect x="68" y="85" width="8" height="10" fill="#908878" opacity="0.4"/>
+        <rect x="94" y="85" width="8" height="10" fill="#908878" opacity="0.4"/>
+        <path d="M60,80 L85,62 L110,80" fill="#A09880" opacity="0.4"/>
+
+        <!-- 人物：前景老者 -->
+        <g transform="translate(50, 190)">
+          <!-- 长袍（葡萄藤刺绣） -->
+          <path d="M-10,0 L-12,30 L12,30 L10,0 Z" fill="#4A6A3A"/>
+          <!-- 葡萄藤装饰 -->
+          <path d="M-8,5 Q-6,3 -4,5 Q-2,7 0,5 Q2,3 4,5 Q6,7 8,5" fill="none" stroke="#6A8A5A" stroke-width="0.3" opacity="0.6"/>
+          <circle cx="-8" cy="5" r="0.8" fill="#8B2252" opacity="0.5"/>
+          <circle cx="-4" cy="5" r="0.8" fill="#8B2252" opacity="0.5"/>
+          <circle cx="0" cy="5" r="0.8" fill="#8B2252" opacity="0.5"/>
+          <circle cx="4" cy="5" r="0.8" fill="#8B2252" opacity="0.5"/>
+          <circle cx="8" cy="5" r="0.8" fill="#8B2252" opacity="0.5"/>
+          <!-- 头部 -->
+          <circle cx="0" cy="-8" r="6" fill="#E8D5B7"/>
+          <!-- 胡须 -->
+          <path d="M-3,-6 Q-4,-3 0,-2 Q4,-3 3,-6" fill="white" opacity="0.7"/>
+          <path d="M0,-2 L0,2" stroke="white" stroke-width="0.5" opacity="0.5"/>
+          <!-- 面部 -->
+          <circle cx="-2" cy="-9" r="0.6" fill="#333"/>
+          <circle cx="2" cy="-9" r="0.6" fill="#333"/>
+          <!-- 白色头发 -->
+          <path d="M-5,-12 Q-6,-16 0,-16 Q6,-16 5,-12" fill="white" opacity="0.8"/>
+          <!-- 右手伸出 -->
+          <path d="M-10,5 Q-16,8 -18,10" stroke="#E8D5B7" stroke-width="1.5" fill="none"/>
+        </g>
+
+        <!-- 人物：中景交谈的夫妇 -->
+        <g transform="translate(85, 175)">
+          <!-- 男性（左） -->
+          <rect x="-12" y="0" width="8" height="18" fill="#6B4A2E" rx="2"/>
+          <circle cx="-8" cy="-6" r="4" fill="#E8D5B7"/>
+          <path d="M-8,-10 Q-10,-14 -8,-16 Q-6,-14 -8,-10" fill="#2A1F0D"/>
+          <!-- 女性（右） -->
+          <rect x="4" y="0" width="8" height="18" fill="#8B5A7A" rx="2"/>
+          <circle cx="8" cy="-6" r="4" fill="#E8D5B7"/>
+          <path d="M8,-10 Q6,-14 8,-16 Q10,-14 8,-10" fill="#4A2F1B"/>
+          <!-- 牵手 -->
+          <line x1="-4" y1="4" x2="4" y2="4" stroke="#E8D5B7" stroke-width="1"/>
+        </g>
+
+        <!-- 人物：玩耍的儿童与狗 -->
+        <g transform="translate(125, 195)">
+          <!-- 儿童 -->
+          <circle cx="0" cy="-6" r="3" fill="#E8D5B7"/>
+          <path d="M-3,-8 Q-3,-12 0,-12 Q3,-12 3,-8" fill="#4A2F1B"/>
+          <rect x="-2" y="-3" width="4" height="8" fill="#D4A574" rx="1"/>
+          <circle cx="-1" cy="-7" r="0.4" fill="#333"/>
+          <circle cx="1" cy="-7" r="0.4" fill="#333"/>
+          <!-- 狗1（白） -->
+          <ellipse cx="8" cy="2" rx="4" ry="2" fill="white" opacity="0.85"/>
+          <circle cx="5" cy="0" r="2" fill="white" opacity="0.85"/>
+          <circle cx="4" cy="0" r="0.4" fill="#333"/>
+          <path d="M11,2 Q14,0 12,4" fill="none" stroke="white" stroke-width="0.5"/>
+        </g>
+
+        <!-- 狗2（老者脚边） -->
+        <g transform="translate(30, 208)">
+          <ellipse cx="0" cy="0" rx="4" ry="2" fill="white" opacity="0.85"/>
+          <circle cx="-3" cy="-1" r="2" fill="white" opacity="0.85"/>
+          <circle cx="-4" cy="-1.5" r="0.4" fill="#333"/>
+          <path d="M4,0 Q6,-2 5,2" fill="none" stroke="white" stroke-width="0.5"/>
+        </g>
+
+        <!-- 十枚星币（5+4+1 排列） -->
+        ${[[85,60],[75,72],[95,72],[65,84],[85,84],[105,84],[75,96],[95,96],[85,108],[60,218]].map(([x,y],i) => {
+          const p = (i < 5) ? 0.9 : (i < 9) ? 0.85 : 0.8;
+          return `<g transform="translate(${x},${y})">
+            <circle cx="0" cy="0" r="5" fill="#DAA520" opacity="${p}" stroke="#B8860B" stroke-width="0.3"/>
+            <circle cx="0" cy="0" r="3" fill="#B8860B" opacity="${p * 0.7}"/>
+            <circle cx="0" cy="0" r="1" fill="#8B6914" opacity="${p * 0.5}"/>
+            <!-- 五角星 -->
+            ${Array.from({length:5}, (_,j) => {
+              const a = j * 2 * Math.PI / 5 - Math.PI / 2;
+              const ox = Math.cos(a) * 2.5;
+              const oy = Math.sin(a) * 2.5;
+              return `<line x1="0" y1="0" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="#8B6914" stroke-width="0.3" opacity="${p*0.5}"/>`;
+            }).join('')}
+          </g>`;
+        }).join('')}
+
+        <!-- 白色边框 -->
+        <rect x="2" y="2" width="166" height="276" fill="none" stroke="white" stroke-width="1.5" rx="12"/>
+        <rect x="6" y="6" width="158" height="268" fill="none" stroke="white" stroke-width="0.4" rx="10"/>
+
+        <!-- 上：X -->
+        <circle cx="85" cy="18" r="9" fill="white" opacity="0.9"/>
+        <text x="85" y="22" text-anchor="middle" fill="#333" font-size="10" font-family="serif" font-weight="bold">X</text>
+
+        <!-- 下：TEN of PENTACLES -->
+        <rect x="20" y="248" width="130" height="22" fill="white" opacity="0.9" rx="4"/>
+        <text x="85" y="262" text-anchor="middle" fill="#333" font-size="6" font-family="serif" font-weight="bold" letter-spacing="0.15em">TEN of PENTACLES</text>
+
+        ${rev ? '<rect width="170" height="280" fill="#ff000008" rx="14"/>' : ''}
+      </g>
+    `
+  }
+};
+
+// ===== SVG 卡面视觉生成 =====
+// ===== 真实塔罗牌图片（PNG）=====
+function generateCardSVG(card, isRev, suitClass, kw) {
+  const revStyle = isRev ? 'transform:rotate(180deg);' : '';
+  return '<img src="/card_images/' + card.num + '.png" class="card-img" alt="' + card.name + '" style="' + revStyle + '">';
+}
+
+function flipCard(index) {
+  if (isAnimating) return;
+  const slots = document.querySelectorAll('.card-slot');
+  const slot = slots[index];
+  if (!slot || slot.classList.contains('flipped') || slot.classList.contains('empty')) return;
+
+  const card = drawnCards[index];
+  if (!card) return;
+
+  isAnimating = true;
+  const isRev = drawnReversed[index];
+  const suitClass = getCardSuitClass(card);
+  const kw = isRev ? card.keywordR : card.keywordU;
+
+  // 粒子爆发（提前获取位置）
+  const rect = slot.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const isMajor = card.suit === 'major';
+  const particleColor = isMajor ? '#c084fc' : isRev ? '#f87171' : '#818cf8';
+
+  // 填充正面图片并处理正逆位
+  const front = slot.querySelector('.card-front');
+  const back = slot.querySelector('.card-back');
+  front.innerHTML = '<img src="/card_images/' + card.num + '.png" class="card-img" alt="" style="' + (isRev ? 'transform:rotate(180deg);' : '') + '">';
+  void front.offsetHeight;
+
+  // 粒子爆发
+  burstParticles(cx, cy, particleColor, isMajor ? 18 : 12);
+
+  // 翻转：先压缩到 0，切换面，再展开
+  slot.classList.remove('pulse-glow', 'idle');
+  slot.classList.add('flipping');
+  slot.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.6, 1)';
+  slot.style.transform = 'scaleX(0.01)';
+
+  setTimeout(() => {
+    // 压缩完成 → 切换面
+    back.style.display = 'none';
+    front.style.display = 'block';
+    slot.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    slot.style.transform = 'scaleX(1)';
+    slot.classList.remove('flipping');
+    slot.classList.add('flipped');
+    if (isMajor) slot.classList.add('major-flipped');
+
+    isAnimating = false;
+    const flipped = document.querySelectorAll('.card-slot.flipped');
+    const total = drawnCards.length;
+
+    if (flipped.length < total) {
+      // 下一张预备脉冲
+      for (let i = 0; i < total; i++) {
+        if (!slots[i].classList.contains('flipped') && !slots[i].classList.contains('empty')) {
+          slots[i].classList.add('pulse-glow');
+          autoRevealTimer = setTimeout(() => flipCard(i), 350);
+          break;
+        }
+      }
+    } else {
+      // 全部翻完
+      setTimeout(() => showReading(), 250);
+    }
+  }, 380);
+}
+
+// ===== 生成解读 =====
+function generateReading(cards, reversedMap, count) {
+  const spread = SPREADS[count];
+  let html = `<h3>🔮 ${spread.name} · 占卜解读</h3><div class="reading-text">`;
+
+  cards.forEach((card, i) => {
+    const isRev = reversedMap[i];
+    const pos = spread.positions[i];
+    const kw = isRev ? card.keywordR : card.keywordU;
+    const cardType = card.suit === 'major' ? '大阿卡纳' : `${card.suitName || ''} ${card.rank || ''}`;
+    const revClass = isRev ? ' reversed-item' : '';
+
+    const dd = CARD_DEEP_DATA[card.num];
+    const mythicText = dd && dd.mythic ? dd.mythic.slice(0, 120) + (dd.mythic.length > 120 ? '…' : '') : '';
+    const archText = dd && dd.archetype ? dd.archetype : '';
+
+    html += `<div class="card-reading-item${revClass}" style="animation-delay:${i * 0.12}s">
+      <div class="reading-pos">${pos.symbol} ${pos.name} <span style="font-weight:400;color:rgba(192,132,252,0.4);">· ${pos.desc}</span></div>
+      <div class="reading-card-name">${card.symbol} ${card.name}
+        <span class="reversed-tag">${isRev ? '▼ 逆位' : '▲ 正位'}</span>
+      </div>
+      <div style="font-size:0.7rem;color:rgba(192,132,252,0.45);margin-bottom:0.3rem;letter-spacing:0.05em;">${card.nameEn}${archText ? ' · ' + archText : ''}</div>
+      <div class="reading-meaning">${isRev ? card.meaningR : card.meaningU}</div>
+      ${card.vision ? `<div class="reading-vision" style="font-size:0.75rem;color:rgba(192,132,252,0.5);margin-top:0.3rem;font-style:italic;">🖼️ ${card.vision}</div>` : ''}
+      <div class="reading-keywords">🔑 ${kw} · ${cardType}</div>
+      ${mythicText ? `<div style="font-size:0.7rem;color:rgba(192,132,252,0.35);margin-top:0.3rem;padding-top:0.3rem;border-top:1px solid rgba(192,132,252,0.08);">📖 传统故事：${mythicText}</div>` : ''}
+      ${renderExtraCardInfo(card)}
+    </div>`;
+  });
+
+  html += '<div class="reading-summary">';
+  html += '<div class="summary-title">✦ 综合指引 ✦</div>';
+  html += '<div class="summary-text">' + generateSummary(cards, reversedMap, count) + '</div>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+// ===== 卡牌深度信息（来自 RWS 参考数据）=====
+function renderExtraCardInfo(card) {
+  const dd = CARD_DEEP_DATA[card.num];
+  if (!dd) return '';
+  const parts = [];
+  if (dd.archetype) parts.push(`🧿 ${dd.archetype}`);
+  if (dd.element) parts.push(`🌱 ${dd.element}`);
+  if (dd.numerology) parts.push(`🔢 ${dd.numerology}`);
+  if (dd.hebrew) parts.push(`📜 ${dd.hebrew}`);
+  if (parts.length === 0) return '';
+  return `<div style="font-size:0.7rem;color:rgba(192,132,252,0.4);margin-top:0.3rem;display:flex;gap:0.5rem;flex-wrap:wrap;">${parts.join(' · ')}</div>`;
+}
+
+// ===== 综合解读总结 =====
+function generateSummary(cards, reversedMap, count) {
+  const revCount = Object.values(reversedMap).filter(Boolean).length;
+  const majorCount = cards.filter(c => c.suit === 'major').length;
+  const spread = SPREADS[count];
+
+  let adviceItems = [];
+  cards.forEach((card, i) => {
+    const isRev = reversedMap[i];
+    const pos = spread?.positions?.[i];
+    const kw = (isRev ? card.keywordR : card.keywordU) || '';
+    const keywords = kw.split('·').map(s => s.trim()).filter(Boolean);
+    if (keywords.length > 0 && pos) {
+      adviceItems.push({ pos: pos.name, keywords: keywords, card: card.name, rev: isRev });
+    }
+  });
+
+  let summary = '';
+
+  if (count === 1) {
+    const card = cards[0];
+    const isRev = reversedMap[0];
+    const kw = (isRev ? card.keywordR : card.keywordU) || '';
+    summary = isRev
+      ? `今天的你可能会遇到「${card.name}」的逆位能量——${kw}。建议：${card.meaningR} 今天在相关事项上多加留意，放慢节奏。`
+      : `「${card.name}」正位在为你指引方向——${kw}。建议：${card.meaningU} 今天适合抓住这股能量，顺势而为。`;
+  } else {
+    const parts = [];
+
+    if (revCount > count / 2) {
+      parts.push('🔶 逆位牌较多，说明当前很多事情可能不太顺，别硬扛——适时调整方案比硬撑更明智。');
+    } else if (revCount === 0) {
+      parts.push('✅ 全部正位，能量正向流动——是个好时机去推进你在意的事情。');
+    } else {
+      parts.push('⚖️ 正逆位平衡——事情有好有坏，接纳就好，不需要追求事事完美。');
+    }
+
+    if (majorCount >= 2) {
+      parts.push(`🌟 抽到了 ${majorCount} 张大阿卡纳——近期可能有重要的转折点或人生课题出现，值得认真对待。`);
+    }
+
+    const actionTips = adviceItems.map(item => {
+      const icon = item.rev ? '⚠️' : '✅';
+      return `${icon}【${item.pos}】${item.card}：关注「${item.keywords.slice(0, 2).join('/')}」`;
+    });
+    if (actionTips.length > 0) {
+      parts.push('📍 各位置实操要点：');
+      parts.push(actionTips.join('<br>'));
+    }
+
+    const revCards = cards.filter((_, i) => reversedMap[i]);
+    if (revCards.length === 1) {
+      parts.push(`💡 特别关注「${revCards[0].name}」逆位所代表的领域——它很可能就是当前需要调整的关键所在。`);
+    }
+
+    parts.push('✨ 抽牌不是算命，是帮你换个角度看问题。带着这些提示去生活，牌上的能量就会慢慢落地。');
+    summary = parts.join(' ');
+  }
+  return summary;
+}
+
+// ===== 显示解读 =====
+function showReading() {
+  const area = document.getElementById('readingArea');
+  const box = document.getElementById('readingBox');
+  const action = document.getElementById('actionArea');
+
+  const html = generateReading(drawnCards, drawnReversed, currentCount);
+  box.innerHTML = html;
+  area.classList.add('visible');
+  action.classList.add('visible');
+
+  setTimeout(() => {
+    area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 200);
+}
+
+// ===== 抽牌主逻辑 =====
+function drawCards(count) {
+  currentCount = count;
+
+  const area = document.getElementById('readingArea');
+  const action = document.getElementById('actionArea');
+  area.classList.remove('visible');
+  action.classList.remove('visible');
+  isAnimating = false;
+
+  if (autoRevealTimer) clearTimeout(autoRevealTimer);
+
+  const shuffled = shuffle(ALL_CARDS);
+  drawnCards = shuffled.slice(0, count);
+
+  drawnReversed = {};
+  for (let i = 0; i < count; i++) {
+    drawnReversed[i] = Math.random() < 0.5;
+  }
+
+  renderSlots(count);
+}
+
+// ===== 重新抽牌 =====
+function resetAndDraw() {
+  drawCards(currentCount);
+}
+
+// ===== 选择抽牌数量 =====
+document.querySelectorAll('.spread-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.spread-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    drawCards(parseInt(btn.dataset.count));
+  });
+});
+
+// ===== 全局预加载所有牌面图片（提升翻牌响应速度）=====
+(function preloadAllCards() {
+  const allImages = [];
+  for (let n = 0; n <= 21; n++) allImages.push('/card_images/' + n + '.webp');
+  // 小阿卡纳编号
+  [100,102,103,104,105,106,107,108,109,110,111,112,113,114,
+   200,202,203,204,205,206,207,208,209,210,211,212,213,214,
+   300,302,303,304,305,306,307,308,309,310,311,312,313,314,
+   400,402,403,404,405,406,407,408,409,410,411,412,413,414
+  ].forEach(n => allImages.push('/card_images/' + n + '.webp'));
+  // 低优先级预取（requestIdleCallback 或 setTimeout 延迟）
+  // 同时加载 WebP（主用）和 PNG（备胎）
+  const urls2 = allImages.map(u => u.replace('.webp', '.png'));
+  const allUrls = [...allImages, ...urls2];
+  const fn = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
+  fn(() => {
+    let i = 0;
+    function loadNext() {
+      if (i >= allUrls.length) return;
+      const img = new Image();
+      img.fetchPriority = 'low';
+      img.onload = img.onerror = () => { i++; setTimeout(loadNext, 20); };
+      img.src = allUrls[i];
+    }
+  });
+})();
+
+// ===== 初始化 =====
+createStars();
+drawCards(1);
+</script>
+</body>
+</html>
