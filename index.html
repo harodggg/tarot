@@ -202,31 +202,24 @@
     width: 170px; height: 280px;
     position: relative;
     cursor: pointer;
+    will-change: transform;
   }
+  .card-slot .card-back { display: block; }
   .card-slot .card-front { display: none; }
   .card-slot.flipped .card-back { display: none; }
   .card-slot.flipped .card-front { display: block; }
-  .card-slot.flipped {
+  @keyframes flip3D {
+    0% { transform: perspective(800px) rotateY(0deg); }
+    49% { transform: perspective(800px) rotateY(-90deg); }
+    50% { transform: perspective(800px) rotateY(90deg); }
+    100% { transform: perspective(800px) rotateY(0deg); }
+  }
+  .card-slot.flipping {
+    animation: flip3D 0.4s cubic-bezier(0.22, 0.9, 0.4, 1) both;
     filter: drop-shadow(0 0 12px rgba(192,132,252,0.15));
   }
   .card-slot.major-flipped {
     filter: drop-shadow(0 0 25px rgba(192,132,252,0.35));
-  }
-  @keyframes flipCompress {
-    0% { transform: perspective(700px) rotateY(0deg) scaleX(1) scaleY(1); opacity: 1; filter: brightness(1); }
-    100% { transform: perspective(700px) rotateY(80deg) scaleX(0.08) scaleY(0.94); opacity: 0.7; filter: brightness(1.15); }
-  }
-  @keyframes flipExpand {
-    0% { transform: perspective(700px) rotateY(80deg) scaleX(0.08) scaleY(0.94); opacity: 0.7; filter: brightness(1.15); }
-    55% { transform: perspective(700px) rotateY(-4deg) scaleX(1.06) scaleY(1.03); opacity: 1; filter: brightness(1); box-shadow: 0 8px 40px rgba(139,92,246,0.25); }
-    75% { transform: perspective(700px) rotateY(1.5deg) scaleX(0.98) scaleY(0.99); box-shadow: 0 4px 25px rgba(139,92,246,0.15); }
-    100% { transform: perspective(700px) rotateY(0deg) scaleX(1) scaleY(1); opacity: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-  }
-  .card-slot.flipping {
-    animation: flipCompress 0.22s cubic-bezier(0.65, 0, 1, 0.3) both;
-  }
-  .card-slot.expanding {
-    animation: flipExpand 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
   .card-slot.empty { visibility: hidden; pointer-events: none; }
 
@@ -290,13 +283,13 @@
     border-radius: 14px;
     overflow: hidden;
     border: 1px solid rgba(192,132,252,0.18);
+    padding: 3px;
   }
 
   /* Card Back */
   .card-back {
     background: #1a1a2e;
     border: 1px solid rgba(192,132,252,0.25);
-    z-index: 2;
     overflow: hidden;
   }
   .card-back .back-pattern {
@@ -341,7 +334,6 @@
   /* Card Front */
   .card-front {
     background: #1e1b3b;
-    z-index: 1;
     border-width: 1px;
     overflow: hidden;
   }
@@ -353,7 +345,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 14px;
+    border-radius: 11px;
   }
   .card-front.reversed {
     border-color: rgba(239,68,68,0.3) !important;
@@ -1251,18 +1243,16 @@ function renderSlots(count) {
 
     const front = document.createElement('div');
     front.className = 'card-face card-front';
+    // 预置正面图片（提前加载，翻转时直接显示）
+    const card = drawnCards[i];
+    if (card) {
+      front.innerHTML = '<img src="/card_images/' + card.num + '.png" class="card-img" alt="">';
+    }
 
     slot.appendChild(back);
     slot.appendChild(front);
     slot.addEventListener('click', () => flipCard(i));
     grid.appendChild(slot);
-
-    // 预加载图片（保证翻牌时已缓存）
-    const card = drawnCards[i];
-    if (card) {
-      const preload = new Image();
-      preload.src = '/card_images/' + card.num + '.png';
-    }
   }
 
   // 入场完成后加呼吸动画并提示
@@ -1272,16 +1262,10 @@ function renderSlots(count) {
       s.classList.remove('entering');
       s.classList.add('idle');
     });
-    // 自动开始翻牌（等图片加载完成后）
-    setTimeout(() => {
-      const first = document.querySelector('.card-slot');
-      if (first) flipCard(0);
-    }, 600);
+    // 所有未翻牌加脉冲提示
+    document.querySelectorAll('.card-slot:not(.flipped)').forEach(s => s.classList.add('pulse-glow'));
   }, totalDelay);
 }
-
-// ===== 翻转单张牌（带粒子爆发 + 自动连续） =====
-let autoRevealTimer = null;
 
 // ===== 罗马数字辅助 =====
 function getRomanNumeral(num) {
@@ -2946,59 +2930,39 @@ function flipCard(index) {
   const isMajor = card.suit === 'major';
   const particleColor = isMajor ? '#c084fc' : isRev ? '#f87171' : '#818cf8';
 
-  // 填充正面图片并处理正逆位
+  // 处理逆位（旋转正面图片180度）
   const front = slot.querySelector('.card-front');
   const back = slot.querySelector('.card-back');
-  front.innerHTML = '<img src="/card_images/' + card.num + '.png" class="card-img" alt="" style="' + (isRev ? 'transform:rotate(180deg);' : '') + '">';
-  void front.offsetHeight;
+  const frontImg = front.querySelector('img');
+  if (frontImg) {
+    frontImg.style.transform = isRev ? 'rotate(180deg)' : '';
+  }
 
   // 粒子爆发
   burstParticles(cx, cy, particleColor, isMajor ? 18 : 12);
 
-    // 翻转动画：纯 GPU 加速 transition，丝滑无卡顿
+  // 3D 旋转动画（perspective + rotateY 画圆弧），中途切换面
   slot.classList.remove('pulse-glow', 'idle');
-  // 第一阶段：压缩
   slot.classList.add('flipping');
-  slot.style.transform = 'scaleX(0.02)';
 
-  const compressMs = 180;
+  // 动画50%时（卡牌边缘）切换正反面
   setTimeout(() => {
-    // 切换正反面
     back.style.display = 'none';
     front.style.display = 'block';
+  }, 200);
 
-    // 第二阶段：弹性展开（过冲→回调→归零）
+  // 动画完成
+  setTimeout(() => {
     slot.classList.remove('flipping');
-    slot.classList.add('expanding');
-    slot.style.transform = 'scaleX(1.05)';
+    slot.classList.add('flipped');
+    if (isMajor) slot.classList.add('major-flipped');
 
-    setTimeout(() => {
-      slot.style.transform = 'scaleX(0.97)';
-
-      setTimeout(() => {
-        slot.style.transform = 'scaleX(1)';
-        slot.classList.remove('expanding');
-        slot.classList.add('flipped');
-        if (isMajor) slot.classList.add('major-flipped');
-
-        isAnimating = false;
-        const flipped = document.querySelectorAll('.card-slot.flipped');
-        const total = drawnCards.length;
-
-        if (flipped.length < total) {
-          for (let i = 0; i < total; i++) {
-            if (!slots[i].classList.contains('flipped') && !slots[i].classList.contains('empty')) {
-              slots[i].classList.add('pulse-glow');
-              autoRevealTimer = setTimeout(() => flipCard(i), 180);
-              break;
-            }
-          }
-        } else {
-          setTimeout(() => showReading(), 120);
-        }
-      }, 100);
-    }, 150);
-  }, compressMs);
+    isAnimating = false;
+    // 全部翻完后显示解读
+    if (document.querySelectorAll('.card-slot.flipped').length === drawnCards.length) {
+      setTimeout(() => showReading(), 180);
+    }
+  }, 420);
 }
 
 // ===== 生成解读 =====
@@ -3138,8 +3102,6 @@ function drawCards(count) {
   area.classList.remove('visible');
   action.classList.remove('visible');
   isAnimating = false;
-
-  if (autoRevealTimer) clearTimeout(autoRevealTimer);
 
   const shuffled = shuffle(ALL_CARDS);
   drawnCards = shuffled.slice(0, count);
