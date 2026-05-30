@@ -224,24 +224,24 @@
 
   /* 入场动画 */
   .card-slot.entering {
-    animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: cardEntrance 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;
   }
   @keyframes cardEntrance {
     0% {
       opacity:0;
-      transform: translateY(-120px) translateX(var(--dx, 0)) scale(0.6) rotateX(15deg) rotateZ(-2deg);
-      filter: blur(10px);
-    }
-    40% {
+      transform: translateY(-35px) scale(0.92);
       filter: blur(2px);
     }
-    70% {
-      transform: translateY(5px) translateX(var(--dx, 0)) scale(1.02) rotateX(0deg) rotateZ(0.5deg);
+    60% {
+      filter: blur(1px);
+    }
+    85% {
+      transform: translateY(2px) scale(1.005);
       filter: blur(0);
     }
     100% {
       opacity:1;
-      transform: translateY(0) translateX(0) scale(1) rotateX(0deg) rotateZ(0deg);
+      transform: translateY(0) scale(1);
       filter: blur(0);
     }
   }
@@ -1325,7 +1325,7 @@ function renderSlots(count) {
     const center = (count - 1) / 2;
     const dx = (i - center) * 8;
     slot.style.setProperty('--dx', dx + 'px');
-    slot.style.animationDelay = (i * 100) + 'ms';
+    slot.style.animationDelay = (i * 300) + 'ms';
     slot.dataset.index = i;
 
     // 光晕环
@@ -1352,7 +1352,7 @@ function renderSlots(count) {
   }
 
   // 入场完成后加呼吸动画并提示
-  const totalDelay = count * 100 + 600;
+  const totalDelay = count * 300 + 1200;
   setTimeout(() => {
     document.querySelectorAll('.card-slot.entering').forEach(s => {
       s.classList.remove('entering');
