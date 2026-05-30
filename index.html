@@ -207,11 +207,26 @@
   .card-slot.flipped .card-back { display: none; }
   .card-slot.flipped .card-front { display: block; }
   .card-slot.flipped {
-    transform: rotateY(180deg);
     filter: drop-shadow(0 0 12px rgba(192,132,252,0.15));
   }
   .card-slot.major-flipped {
     filter: drop-shadow(0 0 25px rgba(192,132,252,0.35));
+  }
+  @keyframes flipCompress {
+    0% { transform: perspective(700px) rotateY(0deg) scaleX(1) scaleY(1); opacity: 1; filter: brightness(1); }
+    100% { transform: perspective(700px) rotateY(80deg) scaleX(0.08) scaleY(0.94); opacity: 0.7; filter: brightness(1.15); }
+  }
+  @keyframes flipExpand {
+    0% { transform: perspective(700px) rotateY(80deg) scaleX(0.08) scaleY(0.94); opacity: 0.7; filter: brightness(1.15); }
+    55% { transform: perspective(700px) rotateY(-4deg) scaleX(1.06) scaleY(1.03); opacity: 1; filter: brightness(1); box-shadow: 0 8px 40px rgba(139,92,246,0.25); }
+    75% { transform: perspective(700px) rotateY(1.5deg) scaleX(0.98) scaleY(0.99); box-shadow: 0 4px 25px rgba(139,92,246,0.15); }
+    100% { transform: perspective(700px) rotateY(0deg) scaleX(1) scaleY(1); opacity: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  }
+  .card-slot.flipping {
+    animation: flipCompress 0.22s cubic-bezier(0.65, 0, 1, 0.3) both;
+  }
+  .card-slot.expanding {
+    animation: flipExpand 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
   .card-slot.empty { visibility: hidden; pointer-events: none; }
 
@@ -222,15 +237,19 @@
   @keyframes cardEntrance {
     0% {
       opacity:0;
-      transform: translateY(-80px) translateX(var(--dx, 0)) scale(0.7) rotateX(10deg);
-      filter: blur(8px);
+      transform: translateY(-120px) translateX(var(--dx, 0)) scale(0.6) rotateX(15deg) rotateZ(-2deg);
+      filter: blur(10px);
     }
-    50% {
-      filter: blur(1px);
+    40% {
+      filter: blur(2px);
+    }
+    70% {
+      transform: translateY(5px) translateX(var(--dx, 0)) scale(1.02) rotateX(0deg) rotateZ(0.5deg);
+      filter: blur(0);
     }
     100% {
       opacity:1;
-      transform: translateY(0) translateX(0) scale(1) rotateX(0deg);
+      transform: translateY(0) translateX(0) scale(1) rotateX(0deg) rotateZ(0deg);
       filter: blur(0);
     }
   }
@@ -238,10 +257,11 @@
   /* 漂浮呼吸 — 用 box-shadow 避免干扰 transform transition */
   .card-slot.idle {
     animation: floatIdle 3s ease-in-out infinite;
+    transition: box-shadow 0.3s;
   }
   @keyframes floatIdle {
-    0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-    50% { box-shadow: 0 8px 30px rgba(139,92,246,0.15); }
+    0%,100% { transform: translateY(0); filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
+    50% { transform: translateY(-4px); filter: drop-shadow(0 8px 25px rgba(139,92,246,0.12)); }
   }
 
   /* 卡背光晕脉冲 */
@@ -2935,40 +2955,50 @@ function flipCard(index) {
   // 粒子爆发
   burstParticles(cx, cy, particleColor, isMajor ? 18 : 12);
 
-  // 翻转：先压缩到 0，切换面，再展开
+    // 翻转动画：纯 GPU 加速 transition，丝滑无卡顿
   slot.classList.remove('pulse-glow', 'idle');
+  // 第一阶段：压缩
   slot.classList.add('flipping');
-  slot.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.6, 1)';
-  slot.style.transform = 'scaleX(0.01)';
+  slot.style.transform = 'scaleX(0.02)';
 
+  const compressMs = 180;
   setTimeout(() => {
-    // 压缩完成 → 切换面
+    // 切换正反面
     back.style.display = 'none';
     front.style.display = 'block';
-    slot.style.transition = 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    slot.style.transform = 'scaleX(1)';
+
+    // 第二阶段：弹性展开（过冲→回调→归零）
     slot.classList.remove('flipping');
-    slot.classList.add('flipped');
-    if (isMajor) slot.classList.add('major-flipped');
+    slot.classList.add('expanding');
+    slot.style.transform = 'scaleX(1.05)';
 
-    isAnimating = false;
-    const flipped = document.querySelectorAll('.card-slot.flipped');
-    const total = drawnCards.length;
+    setTimeout(() => {
+      slot.style.transform = 'scaleX(0.97)';
 
-    if (flipped.length < total) {
-      // 下一张预备脉冲
-      for (let i = 0; i < total; i++) {
-        if (!slots[i].classList.contains('flipped') && !slots[i].classList.contains('empty')) {
-          slots[i].classList.add('pulse-glow');
-          autoRevealTimer = setTimeout(() => flipCard(i), 350);
-          break;
+      setTimeout(() => {
+        slot.style.transform = 'scaleX(1)';
+        slot.classList.remove('expanding');
+        slot.classList.add('flipped');
+        if (isMajor) slot.classList.add('major-flipped');
+
+        isAnimating = false;
+        const flipped = document.querySelectorAll('.card-slot.flipped');
+        const total = drawnCards.length;
+
+        if (flipped.length < total) {
+          for (let i = 0; i < total; i++) {
+            if (!slots[i].classList.contains('flipped') && !slots[i].classList.contains('empty')) {
+              slots[i].classList.add('pulse-glow');
+              autoRevealTimer = setTimeout(() => flipCard(i), 180);
+              break;
+            }
+          }
+        } else {
+          setTimeout(() => showReading(), 120);
         }
-      }
-    } else {
-      // 全部翻完
-      setTimeout(() => showReading(), 250);
-    }
-  }, 380);
+      }, 100);
+    }, 150);
+  }, compressMs);
 }
 
 // ===== 生成解读 =====
