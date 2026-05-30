@@ -235,6 +235,10 @@
   .card-slot.entering {
     animation: cardEntrance 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;
   }
+  @keyframes breathe {
+    0%,100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.08); }
+  }
   @keyframes cardEntrance {
     0% {
       opacity:0;
@@ -300,47 +304,6 @@
     border: 1px solid rgba(192,132,252,0.25);
     overflow: hidden;
   }
-  .card-back .back-pattern {
-    width: 100%; height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 0.5rem;
-    position: relative; z-index: 1;
-  }
-  .card-back .back-pattern .pentacle {
-    width: 70px; height: 70px;
-    border: 1.5px solid rgba(192,132,252,0.15);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-  }
-  .card-back .back-pattern .pentacle::before {
-    content: '✦';
-    font-size: 2rem;
-    color: rgba(192,132,252,0.35);
-    animation: breathe 2.5s ease-in-out infinite;
-  }
-  .card-back .back-pattern .pentacle::after {
-    content: '';
-    position: absolute;
-    width: 55px; height: 55px;
-    border: 1px solid rgba(192,132,252,0.07);
-    border-radius: 50%;
-  }
-  @keyframes breathe {
-    0%,100% { opacity: 0.35; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.08); }
-  }
-  .card-back .back-label {
-    font-size: 0.7rem;
-    color: rgba(192,132,252,0.25);
-    letter-spacing: 0.15em;
-  }
-  /* 卡背底部的"点击抽牌" */
-
-
-  /* Card Front */
-  .card-front {
     background: #1e1b3b;
     border-width: 1px;
     overflow: hidden;
@@ -3044,9 +3007,9 @@ function flipCard(index) {
   burstParticles(cx, cy, particleColor, isMajor ? 18 : 12);
 
   // 3D 圆弧翻转
-  slot.classList.remove('pulse-glow', 'idle');
+  slot.classList.remove('pulse-glow', 'idle', 'entering');
   slot.style.pointerEvents = 'none';
-  // 强制回流：清除 idle 动画残留的 translateY，确保从 0° 开始旋转
+  // 强制回流：清除所有动画残留的 transform，确保从 0° 开始旋转
   void slot.offsetHeight;
   slot.classList.add('flipping');
   slot.style.transform = 'rotateY(-180deg)';
@@ -3220,9 +3183,6 @@ function openReading() {
   card.classList.add('open');
 }
 
-function toggleReadingItem(el) {
-  el.classList.toggle('open');
-}
 
 // ===== 抽牌主逻辑 =====
 function drawCards(count) {
