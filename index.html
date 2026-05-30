@@ -37,10 +37,6 @@
   body {
     min-height: 100vh;
     background: var(--bg);
-    background-image:
-      radial-gradient(ellipse at 20% 10%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 90%, rgba(59, 7, 100, 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -49,15 +45,35 @@
     overflow-x: hidden;
     position: relative;
   }
+  /* 背景图（高锐度） */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
+    background-image: url('/card_images/bg_sharp.png');
+    background-size: cover;
+    background-position: center 20%;
+    background-repeat: no-repeat;
+    filter: contrast(1.08) saturate(1.05);
+    animation: bgBreathe 25s ease-in-out infinite alternate;
+  }
+  /* 蜡烛火焰动画 */
+    50% { filter: brightness(1.06); }
+    100% { filter: brightness(1); }
+  }
+  /* 暗色叠加 */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
     background:
-      repeating-linear-gradient(0deg, transparent, transparent 100px, rgba(139,92,246,0.01) 100px, rgba(139,92,246,0.01) 101px),
-      repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(139,92,246,0.01) 100px, rgba(139,92,246,0.01) 101px);
+      radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(7,5,15,0.5) 85%),
+      radial-gradient(ellipse at 20% 10%, rgba(139,92,246,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(59,7,100,0.05) 0%, transparent 50%);
   }
 
   /* ===== 星空背景 ===== */
@@ -69,27 +85,12 @@
   .star {
     position: absolute;
     border-radius: 50%;
-    background: #fff;
     animation: twinkle var(--d) ease-in-out infinite alternate;
+    animation-delay: var(--delay, 0s);
   }
   @keyframes twinkle {
-    0% { opacity:0.15; transform:scale(0.8); }
-    100% { opacity:1; transform:scale(1.2); }
-  }
-  .shooting-star {
-    position: absolute;
-    width: 2px; height: 2px;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 4px #fff, 0 0 8px #c084fc;
-    animation: shoot 3s linear infinite;
-    opacity: 0;
-  }
-  @keyframes shoot {
-    0% { transform: translateX(0) translateY(0); opacity: 0; }
-    5% { opacity: 1; }
-    15% { transform: translateX(-250px) translateY(250px); opacity: 0; }
-    100% { opacity: 0; }
+    0% { opacity: var(--min-op, 0.1); transform: scale(var(--min-s, 0.7)); }
+    100% { opacity: var(--max-op, 1); transform: scale(var(--max-s, 1.3)); }
   }
 
   /* 神秘学光晕 */
@@ -213,17 +214,16 @@
     position: relative;
     cursor: pointer;
     will-change: transform;
+    transform-style: preserve-3d;
+    perspective: 900px;
   }
   .card-slot .card-back { display: block; }
   .card-slot .card-front { display: none; }
   .card-slot.flipped .card-back { display: none; }
   .card-slot.flipped .card-front { display: block; }
-  @keyframes flip3D {
-    0% { transform: perspective(800px) rotateY(0deg); }
-    100% { transform: perspective(800px) rotateY(-180deg); }
-  }
-  .card-slot.flipping {
-    animation: flip3D 0.4s cubic-bezier(0.22, 0.9, 0.4, 1) both;
+  .card-slot.flipped { transform: rotateY(-180deg); }
+    .card-slot.flipping {
+    transition: transform 0.4s cubic-bezier(0.34, 0.5, 0.25, 0.99);
     filter: drop-shadow(0 0 12px rgba(192,132,252,0.15));
   }
   .card-slot.major-flipped {
@@ -1261,27 +1261,27 @@ let isAnimating = false;
 // ===== 神秘学星空 =====
 function createStars() {
   const container = document.getElementById('stars');
-  for (let i = 0; i < 150; i++) {
+  const starColors = ['#fff', '#fde', '#dfe', '#ffe', '#fff8dc'];
+  for (let i = 0; i < 200; i++) {
     const star = document.createElement('div');
     star.className = 'star';
     star.style.left = Math.random() * 100 + '%';
     star.style.top = Math.random() * 100 + '%';
-    star.style.setProperty('--d', (2 + Math.random() * 4) + 's');
-    star.style.animationDelay = Math.random() * 6 + 's';
-    const size = 1 + Math.random() * 2;
+    const duration = 1.5 + Math.random() * 5;
+    star.style.setProperty('--d', duration + 's');
+    star.style.setProperty('--delay', Math.random() * 8 + 's');
+    star.style.setProperty('--min-op', (0.05 + Math.random() * 0.15));
+    star.style.setProperty('--max-op', (0.4 + Math.random() * 0.6));
+    star.style.setProperty('--min-s', (0.5 + Math.random() * 0.3));
+    star.style.setProperty('--max-s', (1 + Math.random() * 0.5));
+    const size = 1 + Math.random() * 2.5;
     star.style.width = size + 'px';
     star.style.height = size + 'px';
+    star.style.background = starColors[i % starColors.length];
+    if (size > 2) star.style.boxShadow = '0 0 4px rgba(192,132,252,0.15)';
     container.appendChild(star);
   }
-  for (let i = 0; i < 3; i++) {
-    const ss = document.createElement('div');
-    ss.className = 'shooting-star';
-    ss.style.top = (5 + Math.random() * 30) + '%';
-    ss.style.left = (60 + Math.random() * 35) + '%';
-    ss.style.animationDelay = (8 + Math.random() * 20) + 's';
-    ss.style.animationDuration = (2 + Math.random()) + 's';
-    container.appendChild(ss);
-  }
+  // 流星：带拖尾，随机方向，持续产生
 }
 
 // ===== 粒子爆发 =====
@@ -3016,15 +3016,12 @@ function generateCardSVG(card, isRev, suitClass, kw) {
 }
 
 function flipCard(index) {
-  if (isAnimating) return;
   const slots = document.querySelectorAll('.card-slot');
   const slot = slots[index];
   if (!slot || slot.classList.contains('flipped') || slot.classList.contains('empty')) return;
 
   const card = drawnCards[index];
   if (!card) return;
-
-  isAnimating = true;
   const isRev = drawnReversed[index];
   const suitClass = getCardSuitClass(card);
   const kw = isRev ? card.keywordR : card.keywordU;
@@ -3036,38 +3033,42 @@ function flipCard(index) {
   const isMajor = card.suit === 'major';
   const particleColor = isMajor ? '#c084fc' : isRev ? '#f87171' : '#818cf8';
 
-  // 处理逆位（旋转正面图片180度）
   const front = slot.querySelector('.card-front');
   const back = slot.querySelector('.card-back');
   const frontImg = front.querySelector('img');
   if (frontImg) {
-    frontImg.style.transform = isRev ? 'rotate(180deg)' : '';
+    frontImg.style.transform = 'scaleX(-1)' + (isRev ? ' rotate(180deg)' : '');
   }
 
   // 粒子爆发
   burstParticles(cx, cy, particleColor, isMajor ? 18 : 12);
 
-  // 3D 旋转动画（perspective + rotateY 画圆弧），中途切换面
+  // 3D 圆弧翻转
   slot.classList.remove('pulse-glow', 'idle');
+  slot.style.pointerEvents = 'none';
+  // 强制回流：清除 idle 动画残留的 translateY，确保从 0° 开始旋转
+  void slot.offsetHeight;
   slot.classList.add('flipping');
+  slot.style.transform = 'rotateY(-180deg)';
 
-  // 动画50%时（卡牌边缘）切换正反面
+  // 200ms（过半）切换正反面
   setTimeout(() => {
     back.style.display = 'none';
     front.style.display = 'block';
   }, 200);
 
-  // 动画完成
+  // 400ms 动画完成
   setTimeout(() => {
+    slot.classList.remove('flipping');
+    slot.style.transform = '';
     slot.classList.add('flipped');
     if (isMajor) slot.classList.add('major-flipped');
+    slot.style.pointerEvents = '';
 
-    isAnimating = false;
-    // 全部翻完后显示解读翻牌
     if (document.querySelectorAll('.card-slot.flipped').length === drawnCards.length) {
-      setTimeout(() => showReading(), 300);
+      setTimeout(() => showReading(), 250);
     }
-  }, 420);
+  }, 400);
 }
 
 // ===== 生成解读 =====
