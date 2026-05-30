@@ -24,7 +24,7 @@
     --purple-dim: #8b5cf6;
     --text: #e8e0f0;
     --text-dim: #9ca3af;
-    --bg: #0a0a12;
+    --bg: #07050f;
     --card-bg: #1a1a2e;
     --card-bg-alt: #16213e;
     --fire: #f97316;
@@ -38,9 +38,9 @@
     min-height: 100vh;
     background: var(--bg);
     background-image:
-      radial-gradient(ellipse at 25% 15%, rgba(88, 28, 135, 0.12) 0%, transparent 60%),
-      radial-gradient(ellipse at 75% 85%, rgba(30, 64, 175, 0.10) 0%, transparent 60%),
-      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.4) 0%, transparent 100%);
+      radial-gradient(ellipse at 20% 10%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(59, 7, 100, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -48,6 +48,16 @@
     color: var(--text);
     overflow-x: hidden;
     position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 100px, rgba(139,92,246,0.01) 100px, rgba(139,92,246,0.01) 101px),
+      repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(139,92,246,0.01) 100px, rgba(139,92,246,0.01) 101px);
   }
 
   /* ===== 星空背景 ===== */
@@ -82,13 +92,14 @@
     100% { opacity: 0; }
   }
 
-  /* 光晕 */
+  /* 神秘学光晕 */
   .glow-orb {
     position: fixed; border-radius: 50%;
-    filter: blur(80px); pointer-events: none; z-index: 0;
+    filter: blur(100px); pointer-events: none; z-index: 0;
   }
-  .glow-orb-1 { width:400px; height:400px; background:rgba(139,92,246,0.08); top:-100px; left:-100px; }
-  .glow-orb-2 { width:350px; height:350px; background:rgba(59,130,246,0.06); bottom:-50px; right:-50px; }
+  .glow-orb-1 { width:500px; height:500px; background:rgba(88,28,135,0.10); top:-150px; left:-100px; }
+  .glow-orb-2 { width:400px; height:400px; background:rgba(147,51,234,0.06); bottom:-100px; right:-80px; }
+  .glow-orb-3 { width:300px; height:300px; background:rgba(59,130,246,0.04); top:40%; left:60%; }
 
   .container {
     position: relative; z-index: 1;
@@ -209,9 +220,7 @@
   .card-slot.flipped .card-front { display: block; }
   @keyframes flip3D {
     0% { transform: perspective(800px) rotateY(0deg); }
-    49% { transform: perspective(800px) rotateY(-90deg); }
-    50% { transform: perspective(800px) rotateY(90deg); }
-    100% { transform: perspective(800px) rotateY(0deg); }
+    100% { transform: perspective(800px) rotateY(-180deg); }
   }
   .card-slot.flipping {
     animation: flip3D 0.4s cubic-bezier(0.22, 0.9, 0.4, 1) both;
@@ -704,6 +713,7 @@
 <div class="stars" id="stars"></div>
 <div class="glow-orb glow-orb-1"></div>
 <div class="glow-orb glow-orb-2"></div>
+<div class="glow-orb glow-orb-3"></div>
 <div class="particle-container" id="particleContainer"></div>
 
 <div class="container">
@@ -1248,7 +1258,7 @@ let drawnCards = [];
 let drawnReversed = {};
 let isAnimating = false;
 
-// ===== 星空 =====
+// ===== 神秘学星空 =====
 function createStars() {
   const container = document.getElementById('stars');
   for (let i = 0; i < 150; i++) {
@@ -3049,7 +3059,6 @@ function flipCard(index) {
 
   // 动画完成
   setTimeout(() => {
-    slot.classList.remove('flipping');
     slot.classList.add('flipped');
     if (isMajor) slot.classList.add('major-flipped');
 
