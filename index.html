@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
   <!-- 预加载关键资源 -->
-  <link rel="preconnect" href="/">
-  <link rel="preload" as="image" href="/card_images/back.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/card_images/0.png" fetchpriority="high">
-  <link rel="preload" as="image" href="/card_images/1.png" fetchpriority="high">
+  <link rel="preconnect" href="">
+  <link rel="preload" as="image" href="card_images/back.png" fetchpriority="high">
+  <link rel="preload" as="image" href="card_images/0.png" fetchpriority="high">
+  <link rel="preload" as="image" href="card_images/1.png" fetchpriority="high">
   <style>
     .card-slot { will-change: transform; }
     .card-face { will-change: opacity; }
@@ -52,10 +52,7 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    background-image: url('/card_images/bg_sharp.png');
-    background-size: cover;
-    background-position: center 20%;
-    background-repeat: no-repeat;
+    background: radial-gradient(ellipse at 50% 20%, #1a1030 0%, #07050f 50%, #04020a 100%);
     filter: contrast(1.08) saturate(1.05);
     animation: bgBreathe 25s ease-in-out infinite alternate;
   }
@@ -1308,14 +1305,14 @@ function renderSlots(count) {
 
     const back = document.createElement('div');
     back.className = 'card-face card-back';
-    back.innerHTML = '<img src="/card_images/back.png" class="card-img" alt="">';
+    back.innerHTML = '<img src="card_images/back.png" class="card-img" alt="">';
 
     const front = document.createElement('div');
     front.className = 'card-face card-front';
     // 预置正面图片（提前加载，翻转时直接显示）
     const card = drawnCards[i];
     if (card) {
-      front.innerHTML = '<img src="/card_images/' + card.num + '.png" class="card-img" alt="">';
+      front.innerHTML = '<img src="card_images/' + card.num + '.png" class="card-img" alt="">';
     }
 
     slot.appendChild(back);
@@ -1358,7 +1355,7 @@ function rankLabel(r) {
 
 // ===== SVG 卡背人物形象 =====
 function generateBackSVG() {
-  return '<img src="/card_images/back.png" class="card-img" alt="">';
+  return '<img src="card_images/back.png" class="card-img" alt="">';
 }
 
 // ===== 卡牌深度数据（来自 RWS 参考）=====
@@ -2975,7 +2972,7 @@ const CARD_VISUALS = {
 // ===== 真实塔罗牌图片（PNG）=====
 function generateCardSVG(card, isRev, suitClass, kw) {
   const revStyle = isRev ? 'transform:rotate(180deg);' : '';
-  return '<img src="/card_images/' + card.num + '.png" class="card-img" alt="' + card.name + '" style="' + revStyle + '">';
+  return '<img src="card_images/' + card.num + '.png" class="card-img" alt="' + card.name + '" style="' + revStyle + '">';
 }
 
 function flipCard(index) {
@@ -3224,13 +3221,13 @@ document.querySelectorAll('.spread-btn').forEach(btn => {
 // ===== 全局预加载所有牌面图片（提升翻牌响应速度）=====
 (function preloadAllCards() {
   const allImages = [];
-  for (let n = 0; n <= 21; n++) allImages.push('/card_images/' + n + '.webp');
+  for (let n = 0; n <= 21; n++) allImages.push('card_images/' + n + '.webp');
   // 小阿卡纳编号
   [100,102,103,104,105,106,107,108,109,110,111,112,113,114,
    200,202,203,204,205,206,207,208,209,210,211,212,213,214,
    300,302,303,304,305,306,307,308,309,310,311,312,313,314,
    400,402,403,404,405,406,407,408,409,410,411,412,413,414
-  ].forEach(n => allImages.push('/card_images/' + n + '.webp'));
+  ].forEach(n => allImages.push('card_images/' + n + '.webp'));
   // 低优先级预取（requestIdleCallback 或 setTimeout 延迟）
   // 同时加载 WebP（主用）和 PNG（备胎）
   const urls2 = allImages.map(u => u.replace('.webp', '.png'));
